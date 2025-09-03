@@ -34,9 +34,10 @@
         <lombok.version>1.18.30</lombok.version>
     </properties>
 
-    <!-- Child Modules (will add one by one) -->
+    <!-- Child Modules -->
     <modules>
-        <!-- We'll add modules as we create them -->
+        <module>eureka-server</module>
+        <module>api-gateway</module>
     </modules>
 
     <!-- Dependency Management for all child modules -->
