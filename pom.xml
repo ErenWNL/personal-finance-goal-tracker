@@ -39,6 +39,7 @@
         <module>eureka-server</module>
         <module>api-gateway</module>
         <module>authentication-service</module>
+        <module>user-finance-service</module>
     </modules>
 
     <!-- Dependency Management for all child modules -->
