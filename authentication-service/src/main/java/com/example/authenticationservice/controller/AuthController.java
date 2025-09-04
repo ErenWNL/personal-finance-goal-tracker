@@ -38,6 +38,36 @@ public class AuthController {
         return ResponseEntity.notFound().build();
     }
 
+    @PutMapping("/user/{id}")
+    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long id, @RequestBody RegisterRequest request) {
+        Map<String, Object> response = authService.updateUser(id, request);
+        boolean success = (Boolean) response.get("success");
+
+        if (success) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @DeleteMapping("/user/{id}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
+        Map<String, Object> response = authService.deleteUser(id);
+        boolean success = (Boolean) response.get("success");
+
+        if (success) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<Map<String, Object>> getAllUsers() {
+        Map<String, Object> response = authService.getAllUsers();
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Authentication Service is running!");

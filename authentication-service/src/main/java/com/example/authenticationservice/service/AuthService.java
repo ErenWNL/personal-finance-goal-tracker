@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,6 +23,31 @@ public class AuthService {
 
     public Map<String, Object> register(RegisterRequest request) {
         Map<String, Object> response = new HashMap<>();
+
+        // Basic validation
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Email is required");
+            return response;
+        }
+
+        if (request.getPassword() == null || request.getPassword().length() < 6) {
+            response.put("success", false);
+            response.put("message", "Password must be at least 6 characters");
+            return response;
+        }
+
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            response.put("success", false);
+            response.put("message", "First name is required");
+            return response;
+        }
+
+        if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+            response.put("success", false);
+            response.put("message", "Last name is required");
+            return response;
+        }
 
         // Check if user already exists
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -93,6 +119,73 @@ public class AuthService {
     public UserResponse getUserById(Long id) {
         Optional<User> userOpt = userRepository.findById(id);
         return userOpt.map(this::convertToUserResponse).orElse(null);
+    }
+
+    public Map<String, Object> updateUser(Long id, RegisterRequest request) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "User not found");
+            return response;
+        }
+
+        User user = userOpt.get();
+
+        // Update user fields
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setPhone(request.getPhone());
+
+        // Update password if provided
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            String hashedPassword = BCrypt.withDefaults().hashToString(12, request.getPassword().toCharArray());
+            user.setPassword(hashedPassword);
+        }
+
+        User updatedUser = userRepository.save(user);
+        UserResponse userResponse = convertToUserResponse(updatedUser);
+
+        response.put("success", true);
+        response.put("message", "User updated successfully");
+        response.put("user", userResponse);
+
+        return response;
+    }
+
+    public Map<String, Object> deleteUser(Long id) {
+        Map<String, Object> response = new HashMap<>();
+
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isEmpty()) {
+            response.put("success", false);
+            response.put("message", "User not found");
+            return response;
+        }
+
+        userRepository.deleteById(id);
+
+        response.put("success", true);
+        response.put("message", "User deleted successfully");
+
+        return response;
+    }
+
+    public Map<String, Object> getAllUsers() {
+        Map<String, Object> response = new HashMap<>();
+
+        List<User> users = userRepository.findAll();
+        List<UserResponse> userResponses = users.stream()
+                .map(this::convertToUserResponse)
+                .toList();
+
+        response.put("success", true);
+        response.put("message", "Users retrieved successfully");
+        response.put("users", userResponses);
+        response.put("count", userResponses.size());
+
+        return response;
     }
 
     private UserResponse convertToUserResponse(User user) {
