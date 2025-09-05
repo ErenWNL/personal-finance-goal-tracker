@@ -40,6 +40,7 @@
         <module>api-gateway</module>
         <module>authentication-service</module>
         <module>user-finance-service</module>
+        <module>goal-service</module>
     </modules>
 
     <!-- Dependency Management for all child modules -->
