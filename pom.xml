@@ -41,6 +41,7 @@
         <module>authentication-service</module>
         <module>user-finance-service</module>
         <module>goal-service</module>
+        <module>insight-service</module>
     </modules>
 
     <!-- Dependency Management for all child modules -->

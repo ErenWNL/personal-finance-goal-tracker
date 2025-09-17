@@ -1,5 +1,6 @@
 package com.example.userfinanceservice.service;
 
+import com.example.userfinanceservice.client.InsightServiceClient;
 import com.example.userfinanceservice.dto.request.TransactionRequest;
 import com.example.userfinanceservice.dto.response.CategoryResponse;
 import com.example.userfinanceservice.dto.response.TransactionResponse;
@@ -25,6 +26,9 @@ public class TransactionService {
 
     @Autowired
     private TransactionCategoryRepository categoryRepository;
+
+    @Autowired
+    private InsightServiceClient insightServiceClient;
 
     public Map<String, Object> createTransaction(TransactionRequest request) {
         Map<String, Object> response = new HashMap<>();
@@ -73,6 +77,14 @@ public class TransactionService {
         transaction.setNotes(request.getNotes());
 
         Transaction savedTransaction = transactionRepository.save(transaction);
+
+        // Notify Insight Service about new transaction
+        try {
+            insightServiceClient.notifyTransactionCreated(savedTransaction);
+        } catch (Exception e) {
+            System.err.println("Failed to notify Insight Service: " + e.getMessage());
+        }
+
         TransactionResponse transactionResponse = convertToTransactionResponse(savedTransaction);
 
         response.put("success", true);
@@ -155,6 +167,14 @@ public class TransactionService {
         }
 
         Transaction updatedTransaction = transactionRepository.save(transaction);
+
+        // Notify Insight Service about updated transaction
+        try {
+            insightServiceClient.notifyTransactionUpdated(updatedTransaction);
+        } catch (Exception e) {
+            System.err.println("Failed to notify Insight Service about update: " + e.getMessage());
+        }
+
         TransactionResponse transactionResponse = convertToTransactionResponse(updatedTransaction);
 
         response.put("success", true);
@@ -174,7 +194,17 @@ public class TransactionService {
             return response;
         }
 
+        Transaction transaction = transactionOpt.get();
+        Long userId = transaction.getUserId();
+
         transactionRepository.deleteById(id);
+
+        // Notify Insight Service about deleted transaction
+        try {
+            insightServiceClient.notifyTransactionDeleted(id, userId);
+        } catch (Exception e) {
+            System.err.println("Failed to notify Insight Service about deletion: " + e.getMessage());
+        }
 
         response.put("success", true);
         response.put("message", "Transaction deleted successfully");

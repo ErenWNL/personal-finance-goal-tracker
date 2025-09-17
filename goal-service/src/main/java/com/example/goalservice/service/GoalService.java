@@ -1,5 +1,7 @@
 package com.example.goalservice.service;
 
+import com.example.goalservice.client.InsightServiceClient;
+import com.example.goalservice.client.UserFinanceServiceClient;
 import com.example.goalservice.dto.request.GoalRequest;
 import com.example.goalservice.dto.response.GoalCategoryResponse;
 import com.example.goalservice.dto.response.GoalResponse;
@@ -25,6 +27,12 @@ public class GoalService {
 
     @Autowired
     private GoalCategoryRepository categoryRepository;
+
+    @Autowired
+    private InsightServiceClient insightServiceClient;
+
+    @Autowired
+    private UserFinanceServiceClient userFinanceServiceClient;
 
     public Map<String, Object> createGoal(GoalRequest request) {
         Map<String, Object> response = new HashMap<>();
@@ -75,6 +83,14 @@ public class GoalService {
         goal.setStartDate(request.getStartDate() != null ? request.getStartDate() : LocalDate.now());
 
         Goal savedGoal = goalRepository.save(goal);
+
+        // Notify Insight Service about new goal
+        try {
+            insightServiceClient.notifyGoalCreated(savedGoal);
+        } catch (Exception e) {
+            System.err.println("Failed to notify Insight Service about goal creation: " + e.getMessage());
+        }
+
         GoalResponse goalResponse = convertToGoalResponse(savedGoal);
 
         response.put("success", true);
@@ -160,6 +176,18 @@ public class GoalService {
         }
 
         Goal updatedGoal = goalRepository.save(goal);
+
+        // Check if goal is completed and notify accordingly
+        try {
+            if (updatedGoal.getCompletionPercentage().compareTo(BigDecimal.valueOf(100)) >= 0) {
+                insightServiceClient.notifyGoalCompleted(updatedGoal);
+            } else {
+                insightServiceClient.notifyGoalUpdated(updatedGoal);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to notify Insight Service about goal update: " + e.getMessage());
+        }
+
         GoalResponse goalResponse = convertToGoalResponse(updatedGoal);
 
         response.put("success", true);
@@ -179,7 +207,18 @@ public class GoalService {
             return response;
         }
 
+        Goal goal = goalOpt.get();
+        String goalTitle = goal.getTitle();
+        Long userId = goal.getUserId();
+
         goalRepository.deleteById(id);
+
+        // Notify Insight Service about goal deletion
+        try {
+            insightServiceClient.notifyGoalDeleted(id, userId, goalTitle);
+        } catch (Exception e) {
+            System.err.println("Failed to notify Insight Service about goal deletion: " + e.getMessage());
+        }
 
         response.put("success", true);
         response.put("message", "Goal deleted successfully");
