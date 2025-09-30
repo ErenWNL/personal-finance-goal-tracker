@@ -11,6 +11,7 @@ import com.example.goalservice.repository.GoalCategoryRepository;
 import com.example.goalservice.repository.GoalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -116,10 +117,15 @@ public class GoalService {
         return response;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getGoalsByUserId(Long userId) {
         Map<String, Object> response = new HashMap<>();
 
-        List<Goal> goals = goalRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        List<Goal> allGoals = goalRepository.findAll();
+        List<Goal> goals = allGoals.stream()
+                .filter(goal -> goal.getUserId().equals(userId))
+                .sorted((g1, g2) -> g2.getCreatedAt().compareTo(g1.getCreatedAt()))
+                .toList();
         List<GoalResponse> goalResponses = goals.stream()
                 .map(this::convertToGoalResponse)
                 .toList();
@@ -132,6 +138,7 @@ public class GoalService {
         return response;
     }
 
+    @Transactional(readOnly = true)
     public GoalResponse getGoalById(Long id) {
         Optional<Goal> goalOpt = goalRepository.findById(id);
         return goalOpt.map(this::convertToGoalResponse).orElse(null);

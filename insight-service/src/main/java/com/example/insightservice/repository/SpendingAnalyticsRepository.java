@@ -14,12 +14,9 @@ public interface SpendingAnalyticsRepository extends JpaRepository<SpendingAnaly
 
     List<SpendingAnalytics> findByUserIdAndAnalysisPeriod(Long userId, String analysisPeriod);
 
-    List<SpendingAnalytics> findByUserIdAndAnalysisPeriodAndPeriodStartBetween(
-            Long userId, String analysisPeriod, LocalDate startDate, LocalDate endDate);
-
     List<SpendingAnalytics> findByUserIdAndCategoryId(Long userId, Long categoryId);
 
-    @Query("SELECT sa FROM SpendingAnalytics sa WHERE sa.userId = :userId AND sa.periodEnd >= :fromDate ORDER BY sa.periodStart DESC")
+    @Query("SELECT sa FROM SpendingAnalytics sa WHERE sa.userId = :userId AND sa.analysisMonth >= :fromDate ORDER BY sa.analysisMonth DESC")
     List<SpendingAnalytics> findRecentAnalyticsForUser(@Param("userId") Long userId, @Param("fromDate") LocalDate fromDate);
 
     @Query("SELECT sa FROM SpendingAnalytics sa WHERE sa.userId = :userId AND sa.analysisPeriod = :period ORDER BY sa.totalAmount DESC")
@@ -28,6 +25,6 @@ public interface SpendingAnalyticsRepository extends JpaRepository<SpendingAnaly
     @Query("SELECT sa FROM SpendingAnalytics sa WHERE sa.userId = :userId AND sa.trendDirection = 'UP' ORDER BY sa.trendPercentage DESC")
     List<SpendingAnalytics> findIncreasingSpendingTrends(@Param("userId") Long userId);
 
-    boolean existsByUserIdAndCategoryIdAndAnalysisPeriodAndPeriodStart(
-            Long userId, Long categoryId, String analysisPeriod, LocalDate periodStart);
+    boolean existsByUserIdAndCategoryIdAndAnalysisPeriodAndAnalysisMonth(
+            Long userId, Long categoryId, String analysisPeriod, LocalDate analysisMonth);
 }

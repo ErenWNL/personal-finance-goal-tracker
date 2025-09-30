@@ -10,6 +10,7 @@ import com.example.userfinanceservice.repository.TransactionRepository;
 import com.example.userfinanceservice.repository.TransactionCategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -110,10 +111,15 @@ public class TransactionService {
         return response;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getTransactionsByUserId(Long userId) {
         Map<String, Object> response = new HashMap<>();
 
-        List<Transaction> transactions = transactionRepository.findByUserIdOrderByTransactionDateDesc(userId);
+        List<Transaction> allTransactions = transactionRepository.findAll();
+        List<Transaction> transactions = allTransactions.stream()
+                .filter(transaction -> transaction.getUserId().equals(userId))
+                .sorted((t1, t2) -> t2.getTransactionDate().compareTo(t1.getTransactionDate()))
+                .toList();
         List<TransactionResponse> transactionResponses = transactions.stream()
                 .map(this::convertToTransactionResponse)
                 .toList();
@@ -212,11 +218,24 @@ public class TransactionService {
         return response;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getUserTransactionSummary(Long userId) {
         Map<String, Object> response = new HashMap<>();
 
-        BigDecimal totalIncome = transactionRepository.getTotalAmountByUserIdAndType(userId, "INCOME");
-        BigDecimal totalExpense = transactionRepository.getTotalAmountByUserIdAndType(userId, "EXPENSE");
+        List<Transaction> allTransactions = transactionRepository.findAll();
+        List<Transaction> userTransactions = allTransactions.stream()
+                .filter(transaction -> transaction.getUserId().equals(userId))
+                .toList();
+
+        BigDecimal totalIncome = userTransactions.stream()
+                .filter(t -> t.getType() == Transaction.TransactionType.INCOME)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalExpense = userTransactions.stream()
+                .filter(t -> t.getType() == Transaction.TransactionType.EXPENSE)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (totalIncome == null) totalIncome = BigDecimal.ZERO;
         if (totalExpense == null) totalExpense = BigDecimal.ZERO;

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -30,12 +31,19 @@ public class AuthController {
     }
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        UserResponse user = authService.getUserById(id);
-        if (user != null) {
-            return ResponseEntity.ok(user);
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            UserResponse user = authService.getUserById(id);
+            if (user != null) {
+                return ResponseEntity.ok(user);
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            error.put("trace", e.getClass().getName());
+            return ResponseEntity.internalServerError().body(error);
         }
-        return ResponseEntity.notFound().build();
     }
 
     @PutMapping("/user/{id}")

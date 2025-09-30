@@ -22,11 +22,8 @@ public class SpendingAnalytics {
     @Column(name = "analysis_period", nullable = false, length = 20)
     private String analysisPeriod; // WEEKLY, MONTHLY, QUARTERLY, YEARLY
 
-    @Column(name = "period_start", nullable = false)
-    private LocalDate periodStart;
-
-    @Column(name = "period_end", nullable = false)
-    private LocalDate periodEnd;
+    @Column(name = "analysis_month", nullable = false)
+    private LocalDate analysisMonth;
 
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
@@ -95,20 +92,12 @@ public class SpendingAnalytics {
         this.analysisPeriod = analysisPeriod;
     }
 
-    public LocalDate getPeriodStart() {
-        return periodStart;
+    public LocalDate getAnalysisMonth() {
+        return analysisMonth;
     }
 
-    public void setPeriodStart(LocalDate periodStart) {
-        this.periodStart = periodStart;
-    }
-
-    public LocalDate getPeriodEnd() {
-        return periodEnd;
-    }
-
-    public void setPeriodEnd(LocalDate periodEnd) {
-        this.periodEnd = periodEnd;
+    public void setAnalysisMonth(LocalDate analysisMonth) {
+        this.analysisMonth = analysisMonth;
     }
 
     public BigDecimal getTotalAmount() {

@@ -23,7 +23,7 @@ public class Transaction {
     private String description;
 
     // FIX 1: Add proper relationship to TransactionCategory
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", nullable = false)
     private TransactionCategory category;
 

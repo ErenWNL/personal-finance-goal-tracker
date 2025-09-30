@@ -28,7 +28,7 @@ public class Goal {
     @Column(name = "current_amount", precision = 15, scale = 2)
     private BigDecimal currentAmount = BigDecimal.ZERO;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id", nullable = false)
     private GoalCategory category;
 
