@@ -16,6 +16,11 @@ public class GoalController {
     @Autowired
     private GoalService goalService;
 
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("Goal Service is running");
+    }
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> createGoal(@RequestBody GoalRequest request) {
         Map<String, Object> response = goalService.createGoal(request);

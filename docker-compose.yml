@@ -5,12 +5,24 @@ services:
     ports:
       - "8761:8761"
 
+  config-server:
+    build: ./config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      - eureka-server
+    environment:
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config
+
   api-gateway:
     build: ./api-gateway
     ports:
       - "8081:8081"
     depends_on:
       - eureka-server
+      - config-server
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
 
   authentication-service:
     build: ./authentication-service
@@ -18,7 +30,10 @@ services:
       - "8082:8082"
     depends_on:
       - eureka-server
+      - config-server
       - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
 
   user-finance-service:
     build: ./user-finance-service
@@ -26,7 +41,10 @@ services:
       - "8083:8083"
     depends_on:
       - eureka-server
+      - config-server
       - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
 
   goal-service:
     build: ./goal-service
@@ -34,7 +52,10 @@ services:
       - "8084:8084"
     depends_on:
       - eureka-server
+      - config-server
       - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
 
   insight-service:
     build: ./insight-service
@@ -42,7 +63,10 @@ services:
       - "8085:8085"
     depends_on:
       - eureka-server
+      - config-server
       - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
 
   db:
     image: mysql:8.0

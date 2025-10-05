@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: insight-service
-          image: aryabhatt05/insight-service:latest
+          image: sri2710/insight-service:latest
           ports:
             - containerPort: 8085
           env:

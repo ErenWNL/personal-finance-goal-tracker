@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: user-finance-service
-          image: aryabhatt05/user-finance-service:latest
+          image: sri2710/user-finance-service:latest
           ports:
             - containerPort: 8083
           env:

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: authentication-service
-          image: aryabhatt05/authentication-service:latest
+          image: sri2710/authentication-service:latest
           ports:
             - containerPort: 8082
           env:
