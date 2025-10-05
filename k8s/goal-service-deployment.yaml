@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goal-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goal-service
+  template:
+    metadata:
+      labels:
+        app: goal-service
+    spec:
+      containers:
+        - name: goal-service
+          image: aryabhatt05/goal-service:latest
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/auth_service_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: root@123

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insight-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: insight-service
+  template:
+    metadata:
+      labels:
+        app: insight-service
+    spec:
+      containers:
+        - name: insight-service
+          image: aryabhatt05/insight-service:latest
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/auth_service_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: root@123
