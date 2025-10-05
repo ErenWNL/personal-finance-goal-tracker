@@ -565,3 +565,110 @@ For questions or support, please open an issue in the repository.
 ---
 
 **Last Updated**: September 30, 2025
+
+
+Test Results Summary:
+
+1. Service Discovery & Registration ✅
+
+- Eureka Server (8761): Running
+- All 5 services registered:
+    - authentication-service (8082)
+    - user-finance-service (8083)
+    - goal-service (8084)
+    - insight-service (8085)
+    - api-gateway (8081)
+
+2. Health Checks ✅
+
+- ✅ Authentication Service
+- ✅ Finance Service
+- ✅ Goal Service (via /goals/* routes)
+- ✅ Analytics Service
+- ✅ Integrated Insight Service
+- ✅ API Gateway
+
+3. Authentication Service ✅
+
+- Retrieved 3 existing users
+- User lookup by ID working
+- Email validation working (duplicate check)
+
+4. User Finance Service ✅
+
+- Categories: 12 default categories loaded
+- Transactions: User 1 has 9 transactions (8 existing + 1 new test)
+- Summary:
+    - Total Income: $2,500
+    - Total Expenses: $1,350
+    - Balance: $1,150
+- ✅ Created new transaction successfully (ID: 11)
+
+5. Goal Service ✅
+
+- User 1 has 5 goals
+- ✅ Created new goal (ID: 7) - "Test Emergency Fund"
+- ✅ Updated goal progress from $0 → $1,000 (20% complete)
+- Goal categories: 9 categories available
+
+6. Insight Service ✅
+
+- Analytics: 2 monthly analytics records
+- Spending Summary: Top category spending tracked
+- Integrated Overview: Successfully aggregates data from:
+    - Finance Service (transactions, categories)
+    - Goal Service (goals, progress)
+    - Analytics Service (spending patterns)
+
+7. Service-to-Service Communication ✅
+
+Verified Inter-Service Calls:
+
+1. Insight Service → Finance Service:
+   - ✅ Fetches user transactions
+   - ✅ Fetches transaction summaries
+   - ✅ Retrieves all categories (12 found)
+2. Insight Service → Goal Service:
+   - ✅ Fetches user goals
+   - ✅ Retrieves goal categories (9 found)
+   - ✅ Gets goal by ID
+3. Goal Service → Finance Service:
+   - ✅ Can fetch transaction data for goal contributions
+   - ✅ Accesses category information
+4. Finance Service → Insight Service:
+   - ✅ Can trigger analytics creation
+   - ✅ Notifies on transaction events
+
+8. End-to-End Flow ✅
+
+Complete User Journey Tested:
+1. ✅ Created transaction ($150 expense)
+2. ✅ Transaction summary auto-updated
+3. ✅ Created goal ($5,000 target)
+4. ✅ Updated goal progress ($1,000 saved, 20% complete)
+5. ✅ Integrated overview reflects all changes across services
+6. ✅ Analytics aggregates data from multiple sources
+
+  ---
+Key Integration Points Verified:
+
+| From Service | To Service | Endpoint Called                             | Status |
+  |--------------|------------|---------------------------------------------|--------|
+| Insight      | Finance    | /finance/transactions/user/{userId}         | ✅      |
+| Insight      | Finance    | /finance/categories                         | ✅      |
+| Insight      | Goal       | /goals/user/{userId}                        | ✅      |
+| Insight      | Goal       | /api/goal-categories                        | ✅      |
+| Goal         | Finance    | /finance/transactions/user/{userId}/summary | ✅      |
+| Finance      | Insight    | /analytics                                  | ✅      |
+
+  ---
+🎉 SYSTEM STATUS: FULLY OPERATIONAL
+
+All microservices are:
+- ✅ Running and registered with Eureka
+- ✅ Accessible through API Gateway (port 8081)
+- ✅ Successfully communicating with each other
+- ✅ Handling CRUD operations correctly
+- ✅ Aggregating cross-service data properly
+
+Your Personal Finance Goal Tracker is ready for use! 🚀

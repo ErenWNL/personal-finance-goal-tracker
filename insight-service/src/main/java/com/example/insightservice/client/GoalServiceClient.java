@@ -26,7 +26,7 @@ public class GoalServiceClient {
 
     public List<GoalDto> getUserGoals(Long userId) {
         try {
-            String url = goalServiceUrl + "/api/goals/user/" + userId;
+            String url = goalServiceUrl + "/goals/user/" + userId;
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 url,
@@ -57,7 +57,7 @@ public class GoalServiceClient {
 
     public GoalDto getGoalById(Long goalId) {
         try {
-            String url = goalServiceUrl + "/api/goals/" + goalId;
+            String url = goalServiceUrl + "/goals/" + goalId;
 
             ResponseEntity<GoalDto> response = restTemplate.exchange(
                 url,
