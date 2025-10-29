@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Plus, CreditCard, TrendingUp, TrendingDown, Filter, Search } from 'lucide-react';
-import { fetchUserTransactions, fetchTransactionSummary } from '../../store/slices/transactionsSlice';
+import { Plus, CreditCard, TrendingUp, TrendingDown, Filter, Search, Edit3, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { fetchUserTransactions, fetchTransactionSummary, createTransaction, updateTransaction, deleteTransaction } from '../../store/slices/transactionsSlice';
 import { Container, Card, Button, Flex, Grid, Heading, Text, Input } from '../../styles/GlobalStyles';
+import TransactionModal from '../../components/Transactions/TransactionModal';
+import { financeAPI } from '../../services/api';
 
 const TransactionsContainer = styled(Container)`
   max-width: 1400px;
@@ -96,45 +99,34 @@ const TransactionAmount = styled.div`
   color: ${props => props.positive ? props.theme.colors.success[600] : props.theme.colors.error[600]};
 `;
 
+const ActionButtons = styled(Flex)`
+  gap: ${props => props.theme.spacing[2]};
+`;
+
+const ActionButton = styled(Button)`
+  padding: ${props => props.theme.spacing[2]};
+  min-height: auto;
+  width: 36px;
+  height: 36px;
+`;
+
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${props => props.theme.spacing[4]};
+  padding: ${props => props.theme.spacing[8]};
+  text-align: center;
+`;
+
 const Transactions = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { transactions, summary, isLoading } = useSelector((state) => state.transactions);
-
-  const [sampleTransactions] = useState([
-    {
-      id: 1,
-      description: 'Salary Deposit',
-      amount: 3200,
-      type: 'INCOME',
-      date: '2024-01-15',
-      category: 'Salary'
-    },
-    {
-      id: 2,
-      description: 'Grocery Shopping',
-      amount: -125.50,
-      type: 'EXPENSE',
-      date: '2024-01-14',
-      category: 'Food'
-    },
-    {
-      id: 3,
-      description: 'Gas Station',
-      amount: -45.00,
-      type: 'EXPENSE',
-      date: '2024-01-13',
-      category: 'Transport'
-    },
-    {
-      id: 4,
-      description: 'Freelance Payment',
-      amount: 800,
-      type: 'INCOME',
-      date: '2024-01-12',
-      category: 'Freelance'
-    },
-  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [filterType, setFilterType] = useState('ALL'); // ALL, INCOME, EXPENSE
 
   useEffect(() => {
     if (user?.id) {
@@ -159,6 +151,88 @@ const Transactions = () => {
     });
   };
 
+  const handleOpenModal = () => {
+    setSelectedTransaction(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTransaction(null);
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
+    if (window.confirm('Are you sure you want to delete this transaction?')) {
+      setIsSaving(true);
+      try {
+        const response = await financeAPI.deleteTransaction(transactionId);
+        if (response.data.success) {
+          toast.success('Transaction deleted successfully');
+          if (user?.id) {
+            dispatch(fetchUserTransactions(user.id));
+            dispatch(fetchTransactionSummary(user.id));
+          }
+        } else {
+          toast.error(response.data.message || 'Failed to delete transaction');
+        }
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to delete transaction');
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleSubmitTransaction = async (transactionData) => {
+    setIsSaving(true);
+    try {
+      if (selectedTransaction) {
+        // Update existing transaction
+        const response = await financeAPI.updateTransaction(selectedTransaction.id, transactionData);
+        if (response.data.success || response.status === 200 || response.status === 201) {
+          toast.success('Transaction updated successfully');
+          handleCloseModal();
+          if (user?.id) {
+            dispatch(fetchUserTransactions(user.id));
+            dispatch(fetchTransactionSummary(user.id));
+          }
+        } else {
+          toast.error(response.data.message || 'Failed to update transaction');
+        }
+      } else {
+        // Create new transaction
+        transactionData.userId = user.id;
+        const response = await financeAPI.createTransaction(transactionData);
+        if (response.data.success || response.status === 200 || response.status === 201) {
+          toast.success('Transaction added successfully');
+          handleCloseModal();
+          if (user?.id) {
+            dispatch(fetchUserTransactions(user.id));
+            dispatch(fetchTransactionSummary(user.id));
+          }
+        } else {
+          toast.error(response.data.message || 'Failed to add transaction');
+        }
+      }
+    } catch (error) {
+      console.error('Transaction error:', error.response?.data);
+      toast.error(error.response?.data?.message || error.message || 'Failed to save transaction');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Filter transactions based on selected type
+  const filteredTransactions = transactions.filter(tx => {
+    if (filterType === 'ALL') return true;
+    return tx.type === filterType;
+  });
+
   return (
     <TransactionsContainer>
       <PageHeader
@@ -172,7 +246,7 @@ const Transactions = () => {
             Track your income and expenses
           </Text>
         </div>
-        <Button variant="primary">
+        <Button variant="primary" onClick={handleOpenModal}>
           <Plus size={20} />
           Add Transaction
         </Button>
@@ -197,6 +271,31 @@ const Transactions = () => {
         </StatCard>
       </StatsGrid>
 
+      {/* Filter Buttons */}
+      <Flex gap="8px" style={{ marginBottom: '24px' }}>
+        <Button
+          variant={filterType === 'ALL' ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setFilterType('ALL')}
+        >
+          All
+        </Button>
+        <Button
+          variant={filterType === 'INCOME' ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setFilterType('INCOME')}
+        >
+          Income
+        </Button>
+        <Button
+          variant={filterType === 'EXPENSE' ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setFilterType('EXPENSE')}
+        >
+          Expenses
+        </Button>
+      </Flex>
+
       <TransactionsList
         as={motion.div}
         initial={{ opacity: 0, y: 20 }}
@@ -205,42 +304,86 @@ const Transactions = () => {
       >
         <div style={{ padding: '24px 24px 16px' }}>
           <Flex justify="space-between" align="center">
-            <Heading level={3}>Recent Transactions</Heading>
+            <Heading level={3}>
+              {filterType === 'ALL' ? 'All Transactions' : filterType === 'INCOME' ? 'Income' : 'Expenses'}
+            </Heading>
             <Flex gap="12px">
-              <Button variant="outline" size="sm">
-                <Filter size={16} />
-                Filter
-              </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" disabled>
                 <Search size={16} />
                 Search
               </Button>
             </Flex>
           </Flex>
         </div>
-        
-        {sampleTransactions.map((transaction) => (
-          <TransactionItem key={transaction.id}>
-            <TransactionInfo>
-              <TransactionIcon
-                color={transaction.type === 'INCOME' ? '#dcfce7' : '#fee2e2'}
-                iconColor={transaction.type === 'INCOME' ? '#16a34a' : '#dc2626'}
-              >
-                {transaction.type === 'INCOME' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-              </TransactionIcon>
-              <TransactionDetails>
-                <TransactionTitle>{transaction.description}</TransactionTitle>
-                <TransactionMeta>
-                  {transaction.category} • {formatDate(transaction.date)}
-                </TransactionMeta>
-              </TransactionDetails>
-            </TransactionInfo>
-            <TransactionAmount positive={transaction.type === 'INCOME'}>
-              {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
-            </TransactionAmount>
+
+        {filteredTransactions && filteredTransactions.length > 0 ? (
+          filteredTransactions.map((transaction) => (
+            <TransactionItem key={transaction.id}>
+              <TransactionInfo>
+                <TransactionIcon
+                  color={transaction.type === 'INCOME' ? '#dcfce7' : '#fee2e2'}
+                  iconColor={transaction.type === 'INCOME' ? '#16a34a' : '#dc2626'}
+                >
+                  {transaction.type === 'INCOME' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                </TransactionIcon>
+                <TransactionDetails>
+                  <TransactionTitle>{transaction.description}</TransactionTitle>
+                  <TransactionMeta>
+                    {transaction.category?.name || transaction.categoryName || 'Uncategorized'} • {formatDate(transaction.transactionDate || transaction.createdAt)}
+                  </TransactionMeta>
+                </TransactionDetails>
+              </TransactionInfo>
+              <Flex align="center" gap="16px">
+                <TransactionAmount positive={transaction.type === 'INCOME'}>
+                  {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
+                </TransactionAmount>
+                <ActionButtons>
+                  <ActionButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditTransaction(transaction)}
+                    title="Edit Transaction"
+                    disabled={isSaving}
+                  >
+                    <Edit3 size={16} />
+                  </ActionButton>
+                  <ActionButton
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleDeleteTransaction(transaction.id)}
+                    title="Delete Transaction"
+                    disabled={isSaving}
+                  >
+                    <Trash2 size={16} />
+                  </ActionButton>
+                </ActionButtons>
+              </Flex>
+            </TransactionItem>
+          ))
+        ) : (
+          <TransactionItem style={{ padding: '40px', textAlign: 'center', borderBottom: 'none' }}>
+            <EmptyStateContainer style={{ width: '100%' }}>
+              <CreditCard size={48} style={{ color: '#d1d5db' }} />
+              <p style={{ color: '#6b7280', marginBottom: '16px' }}>
+                {transactions.length === 0 ? 'No transactions yet' : 'No transactions matching this filter'}
+              </p>
+              <Button variant="primary" onClick={handleOpenModal}>
+                <Plus size={20} />
+                Add Transaction
+              </Button>
+            </EmptyStateContainer>
           </TransactionItem>
-        ))}
+        )}
       </TransactionsList>
+
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmitTransaction}
+        transaction={selectedTransaction}
+        isLoading={isSaving}
+      />
     </TransactionsContainer>
   );
 };

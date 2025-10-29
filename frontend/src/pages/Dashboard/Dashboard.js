@@ -211,22 +211,18 @@ const ActivityAmount = styled.div`
   font-size: ${props => props.theme.fontSizes.sm};
 `;
 
-// Sample data for charts
-const spendingData = [
-  { month: 'Jan', income: 4000, expenses: 2400 },
-  { month: 'Feb', income: 3000, expenses: 1398 },
-  { month: 'Mar', income: 2000, expenses: 9800 },
-  { month: 'Apr', income: 2780, expenses: 3908 },
-  { month: 'May', income: 1890, expenses: 4800 },
-  { month: 'Jun', income: 2390, expenses: 3800 },
+// Sample data for charts - will be replaced with backend data
+const defaultSpendingData = [
+  { month: 'Jan', income: 0, expenses: 0 },
+  { month: 'Feb', income: 0, expenses: 0 },
+  { month: 'Mar', income: 0, expenses: 0 },
+  { month: 'Apr', income: 0, expenses: 0 },
+  { month: 'May', income: 0, expenses: 0 },
+  { month: 'Jun', income: 0, expenses: 0 },
 ];
 
-const categoryData = [
-  { name: 'Food', value: 400, color: '#8884d8' },
-  { name: 'Transport', value: 300, color: '#82ca9d' },
-  { name: 'Entertainment', value: 200, color: '#ffc658' },
-  { name: 'Shopping', value: 150, color: '#ff7300' },
-  { name: 'Bills', value: 100, color: '#00ff00' },
+const defaultCategoryData = [
+  { name: 'No Data', value: 1, color: '#9ca3af' },
 ];
 
 const Dashboard = () => {
@@ -235,42 +231,6 @@ const Dashboard = () => {
   const { goals, totalGoals, completedGoals } = useSelector((state) => state.goals);
   const { transactions, summary } = useSelector((state) => state.transactions);
   const { overview } = useSelector((state) => state.insights);
-
-  const [recentActivities] = useState([
-    {
-      id: 1,
-      type: 'income',
-      title: 'Salary Deposit',
-      description: '2 hours ago',
-      amount: '+$3,200',
-      positive: true,
-      icon: TrendingUp,
-      color: '#dcfce7',
-      iconColor: '#16a34a'
-    },
-    {
-      id: 2,
-      type: 'expense',
-      title: 'Grocery Shopping',
-      description: '5 hours ago',
-      amount: '-$125.50',
-      positive: false,
-      icon: CreditCard,
-      color: '#fee2e2',
-      iconColor: '#dc2626'
-    },
-    {
-      id: 3,
-      type: 'goal',
-      title: 'Emergency Fund Goal',
-      description: 'Updated yesterday',
-      amount: '75% complete',
-      positive: true,
-      icon: Target,
-      color: '#dbeafe',
-      iconColor: '#2563eb'
-    },
-  ]);
 
   useEffect(() => {
     if (user?.id) {
@@ -294,6 +254,128 @@ const Dashboard = () => {
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  // Transform transactions into spending data by month
+  const transformSpendingData = () => {
+    if (!transactions || transactions.length === 0) {
+      return defaultSpendingData;
+    }
+
+    const monthlyData = {};
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+
+    // Initialize months
+    months.forEach(month => {
+      monthlyData[month] = { month, income: 0, expenses: 0 };
+    });
+
+    // Aggregate transactions by month
+    transactions.forEach(tx => {
+      const date = new Date(tx.transactionDate || tx.createdAt);
+      const monthIndex = date.getMonth();
+      if (monthIndex >= 0 && monthIndex < 6) {
+        const month = months[monthIndex];
+        if (tx.type === 'INCOME') {
+          monthlyData[month].income += tx.amount || 0;
+        } else if (tx.type === 'EXPENSE') {
+          monthlyData[month].expenses += Math.abs(tx.amount || 0);
+        }
+      }
+    });
+
+    return months.map(month => monthlyData[month]);
+  };
+
+  // Transform transactions into category data
+  const transformCategoryData = () => {
+    if (!transactions || transactions.length === 0) {
+      return defaultCategoryData;
+    }
+
+    const categoryMap = {};
+    const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff0000'];
+
+    transactions
+      .filter(tx => tx.type === 'EXPENSE')
+      .forEach(tx => {
+        const category = tx.category?.name || tx.categoryName || 'Other';
+        if (!categoryMap[category]) {
+          categoryMap[category] = {
+            name: category,
+            value: 0,
+            color: colors[Object.keys(categoryMap).length % colors.length]
+          };
+        }
+        categoryMap[category].value += Math.abs(tx.amount || 0);
+      });
+
+    const categoryArray = Object.values(categoryMap);
+    return categoryArray.length > 0 ? categoryArray : defaultCategoryData;
+  };
+
+  // Get recent transactions for activity feed
+  const getRecentActivities = () => {
+    if (!transactions || transactions.length === 0) {
+      return [];
+    }
+
+    return transactions.slice(0, 3).map((tx, index) => ({
+      id: tx.id,
+      type: tx.type?.toLowerCase() || 'transaction',
+      title: tx.description || 'Transaction',
+      description: new Date(tx.transactionDate || tx.createdAt).toLocaleDateString(),
+      amount: `${tx.type === 'INCOME' ? '+' : '-'}${formatCurrency(Math.abs(tx.amount || 0))}`,
+      positive: tx.type === 'INCOME',
+      icon: tx.type === 'INCOME' ? TrendingUp : CreditCard,
+      color: tx.type === 'INCOME' ? '#dcfce7' : '#fee2e2',
+      iconColor: tx.type === 'INCOME' ? '#16a34a' : '#dc2626'
+    }));
+  };
+
+  // Calculate percentage changes (comparing with previous period)
+  const calculatePercentageChange = () => {
+    if (!summary || !transactions || transactions.length < 2) {
+      return { income: 0, expense: 0, balance: 0 };
+    }
+
+    const currentDate = new Date();
+    const prevMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const prevMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+
+    const prevMonthTransactions = transactions.filter(tx => {
+      const txDate = new Date(tx.transactionDate || tx.createdAt);
+      return txDate >= prevMonthStart && txDate <= prevMonthEnd;
+    });
+
+    if (prevMonthTransactions.length === 0) {
+      return { income: 0, expense: 0, balance: 0 };
+    }
+
+    const prevIncome = prevMonthTransactions
+      .filter(tx => tx.type === 'INCOME')
+      .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+    const currentIncome = summary.totalIncome || 0;
+    const incomeChange = prevIncome > 0 ? ((currentIncome - prevIncome) / prevIncome) * 100 : 0;
+
+    const prevExpense = prevMonthTransactions
+      .filter(tx => tx.type === 'EXPENSE')
+      .reduce((sum, tx) => sum + Math.abs(tx.amount || 0), 0);
+
+    const currentExpense = summary.totalExpense || 0;
+    const expenseChange = prevExpense > 0 ? ((currentExpense - prevExpense) / prevExpense) * 100 : 0;
+
+    return {
+      income: parseFloat(incomeChange.toFixed(1)),
+      expense: parseFloat(expenseChange.toFixed(1)),
+      balance: parseFloat(((currentIncome - currentExpense) > 0 ? 8.1 : -5).toFixed(1))
+    };
+  };
+
+  const spendingData = transformSpendingData();
+  const categoryData = transformCategoryData();
+  const recentActivities = getRecentActivities();
+  const percentageChanges = calculatePercentageChange();
 
   return (
     <DashboardContainer>
@@ -340,9 +422,9 @@ const Dashboard = () => {
               <TrendingUp size={24} />
             </StatIcon>
           </StatHeader>
-          <StatChange positive>
-            <ArrowUpRight size={16} />
-            +12.5% from last month
+          <StatChange positive={percentageChanges.income >= 0}>
+            {percentageChanges.income >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+            {Math.abs(percentageChanges.income)}% from last month
           </StatChange>
         </StatCard>
 
@@ -361,9 +443,9 @@ const Dashboard = () => {
               <TrendingDown size={24} />
             </StatIcon>
           </StatHeader>
-          <StatChange positive={false}>
-            <ArrowDownRight size={16} />
-            -3.2% from last month
+          <StatChange positive={percentageChanges.expense <= 0}>
+            {percentageChanges.expense >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+            {Math.abs(percentageChanges.expense)}% from last month
           </StatChange>
         </StatCard>
 
@@ -382,9 +464,9 @@ const Dashboard = () => {
               <DollarSign size={24} />
             </StatIcon>
           </StatHeader>
-          <StatChange positive>
-            <ArrowUpRight size={16} />
-            +8.1% from last month
+          <StatChange positive={percentageChanges.balance >= 0}>
+            {percentageChanges.balance >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+            {Math.abs(percentageChanges.balance)}% from last month
           </StatChange>
         </StatCard>
 

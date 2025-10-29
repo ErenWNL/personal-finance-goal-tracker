@@ -180,6 +180,26 @@ const Goals = () => {
     }
   };
 
+  const handleCompleteGoal = async (goal) => {
+    const confirmMessage = `Mark "${goal.title}" as completed? The goal status will change to COMPLETED.`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        const goalData = {
+          ...goal,
+          status: 'COMPLETED',
+          completedAt: new Date().toISOString(),
+          completionPercentage: 100,
+        };
+        const result = await dispatch(updateGoal({ id: goal.id, goalData }));
+        if (updateGoal.fulfilled.match(result)) {
+          toast.success(`"${goal.title}" marked as completed! 🎉`);
+        }
+      } catch (error) {
+        toast.error('Failed to complete goal');
+      }
+    }
+  };
+
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedGoal(null);
@@ -351,6 +371,7 @@ const Goals = () => {
                 goal={goal}
                 onEdit={handleEditGoal}
                 onDelete={handleDeleteGoal}
+                onComplete={handleCompleteGoal}
                 index={index}
               />
             ))}

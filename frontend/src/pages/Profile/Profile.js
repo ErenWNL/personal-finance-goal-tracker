@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Container, Card, Button, Input, Label, Heading, Text, Flex } from '../../styles/GlobalStyles';
+import { authAPI } from '../../services/api';
 
 const ProfileContainer = styled(Container)`
   max-width: 800px;
@@ -129,8 +130,12 @@ const StatLabel = styled.div`
 `;
 
 const Profile = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { goals } = useSelector((state) => state.goals);
+  const { transactions } = useSelector((state) => state.transactions);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -165,17 +170,51 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    if (!user?.id) {
+      toast.error('User ID not found');
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      // Here you would dispatch an action to update user profile
-      toast.success('Profile updated successfully!');
-      setIsEditing(false);
+      const response = await authAPI.updateUser(user.id, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        dateOfBirth: formData.dateOfBirth,
+      });
+
+      if (response.data.success) {
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+        // Optionally dispatch action to update Redux auth state with new user data
+      } else {
+        toast.error(response.data.message || 'Failed to update profile');
+      }
     } catch (error) {
-      toast.error('Failed to update profile');
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const getInitials = (firstName, lastName) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || 'U';
+  };
+
+  // Calculate statistics from Redux data
+  const activeGoalsCount = goals?.filter(g => g.status === 'ACTIVE').length || 0;
+  const completedGoalsCount = goals?.filter(g => g.status === 'COMPLETED').length || 0;
+  const totalSaved = goals?.reduce((sum, g) => sum + (g.currentAmount || 0), 0) || 0;
+  const transactionCount = transactions?.length || 0;
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount || 0);
   };
 
   return (
@@ -206,19 +245,19 @@ const Profile = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <StatCard>
-          <StatValue>5</StatValue>
+          <StatValue>{activeGoalsCount}</StatValue>
           <StatLabel>Active Goals</StatLabel>
         </StatCard>
         <StatCard>
-          <StatValue>$12,450</StatValue>
+          <StatValue>{formatCurrency(totalSaved)}</StatValue>
           <StatLabel>Total Saved</StatLabel>
         </StatCard>
         <StatCard>
-          <StatValue>156</StatValue>
+          <StatValue>{transactionCount}</StatValue>
           <StatLabel>Transactions</StatLabel>
         </StatCard>
         <StatCard>
-          <StatValue>3</StatValue>
+          <StatValue>{completedGoalsCount}</StatValue>
           <StatLabel>Goals Completed</StatLabel>
         </StatCard>
       </StatsGrid>
@@ -242,9 +281,9 @@ const Profile = () => {
                 <X size={16} />
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleSave}>
+              <Button variant="primary" onClick={handleSave} disabled={isSaving}>
                 <Save size={16} />
-                Save Changes
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </Flex>
           )}

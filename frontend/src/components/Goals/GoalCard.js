@@ -1,17 +1,18 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { 
-  Target, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp, 
-  Edit3, 
-  Trash2, 
+import {
+  Target,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Edit3,
+  Trash2,
   CheckCircle,
   Clock,
   AlertCircle,
-  MoreVertical
+  MoreVertical,
+  Check
 } from 'lucide-react';
 import { Card, Button, Flex, Text } from '../../styles/GlobalStyles';
 
@@ -161,7 +162,7 @@ const ActionButton = styled(Button)`
   height: 36px;
 `;
 
-const GoalCard = ({ goal, onEdit, onDelete, index }) => {
+const GoalCard = ({ goal, onEdit, onDelete, onComplete, index }) => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -310,6 +311,16 @@ const GoalCard = ({ goal, onEdit, onDelete, index }) => {
         )}
 
         <CardActions>
+          {goal.status?.toUpperCase() !== 'COMPLETED' && (
+            <ActionButton
+              variant="primary"
+              size="sm"
+              onClick={() => onComplete(goal)}
+              title="Mark as Completed"
+            >
+              <Check size={16} />
+            </ActionButton>
+          )}
           <ActionButton
             variant="outline"
             size="sm"
