@@ -78,6 +78,66 @@ const InsightDescription = styled(Text)`
   color: ${props => props.theme.colors.gray[600]};
 `;
 
+// Fixed: Added error and loading UI components
+const LoadingContainer = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: ${props => props.theme.spacing[4]};
+`;
+
+const Spinner = styled.div`
+  border: 4px solid ${props => props.theme.colors.gray[200]};
+  border-top: 4px solid ${props => props.theme.colors.primary[500]};
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorContainer = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: ${props => props.theme.spacing[8]};
+  background: ${props => props.theme.colors.red[50]};
+  border-radius: ${props => props.theme.borderRadius.lg};
+  border: 2px solid ${props => props.theme.colors.red[200]};
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: ${props => props.theme.spacing[4]};
+`;
+
+const ErrorTitle = styled(Heading)`
+  color: ${props => props.theme.colors.red[600]};
+  margin-bottom: ${props => props.theme.spacing[2]};
+`;
+
+const ErrorDescription = styled(Text)`
+  color: ${props => props.theme.colors.red[500]};
+  margin-bottom: ${props => props.theme.spacing[6]};
+  text-align: center;
+`;
+
+const RetryButton = styled(Button)`
+  background: ${props => props.theme.colors.red[600]};
+
+  &:hover {
+    background: ${props => props.theme.colors.red[700]};
+  }
+`;
+
 // Default data for charts - will be replaced with backend data
 const defaultSpendingTrendData = [
   { month: 'Jan', spending: 0, income: 0, savings: 0 },
@@ -99,9 +159,21 @@ const defaultGoalProgressData = [
 const Insights = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { overview, analytics, isLoading } = useSelector((state) => state.insights);
-  const { transactions } = useSelector((state) => state.transactions);
-  const { goals } = useSelector((state) => state.goals);
+  const { overview, analytics, isLoading, error } = useSelector((state) => state.insights);
+
+  // Fixed: Call all hooks unconditionally at the top level
+  const transactionsFromState = useSelector((state) => state.transactions)?.transactions || [];
+  const goalsFromState = useSelector((state) => state.goals)?.goals || [];
+
+  // Use overview data as primary source to ensure data consistency
+  // Falls back to local state only if overview hasn't loaded yet
+  const transactions = (overview?.transactions && overview.transactions.length > 0)
+    ? overview.transactions
+    : transactionsFromState;
+
+  const goals = (overview?.goals && overview.goals.length > 0)
+    ? overview.goals
+    : goalsFromState;
 
   useEffect(() => {
     if (user?.id) {
@@ -323,6 +395,53 @@ const Insights = () => {
   const categorySpendingData = transformCategorySpendingData();
   const goalProgressData = transformGoalProgressData();
   const dynamicInsights = generateInsights();
+
+  // Fixed: Add loading state display
+  if (isLoading && !transactions.length) {
+    return (
+      <InsightsContainer>
+        <LoadingContainer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Spinner />
+          <Text size={props => props.theme.fontSizes.lg}>
+            Loading your financial insights...
+          </Text>
+        </LoadingContainer>
+      </InsightsContainer>
+    );
+  }
+
+  // Fixed: Add error state display
+  if (error) {
+    return (
+      <InsightsContainer>
+        <ErrorContainer
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <ErrorIcon>⚠️</ErrorIcon>
+          <ErrorTitle level={2}>Failed to Load Insights</ErrorTitle>
+          <ErrorDescription>
+            {error}. Please check your connection and try again.
+          </ErrorDescription>
+          <RetryButton
+            onClick={() => {
+              if (user?.id) {
+                dispatch(fetchUserInsights(user.id));
+                dispatch(fetchSpendingAnalytics({ userId: user.id, period: 'MONTHLY' }));
+              }
+            }}
+          >
+            Try Again
+          </RetryButton>
+        </ErrorContainer>
+      </InsightsContainer>
+    );
+  }
 
   return (
     <InsightsContainer>

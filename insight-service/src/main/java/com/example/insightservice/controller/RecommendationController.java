@@ -2,6 +2,12 @@ package com.example.insightservice.controller;
 
 import com.example.insightservice.entity.UserRecommendation;
 import com.example.insightservice.service.RecommendationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/recommendations")
+@Tag(name = "Recommendations", description = "Personalized recommendations endpoints")
 public class RecommendationController {
 
     @Autowired
@@ -250,6 +257,7 @@ public class RecommendationController {
     }
 
     @GetMapping("/health")
+    @Operation(summary = "Health check", description = "Check if the recommendations service is running")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Insight Service - Recommendations Controller is running!");
     }

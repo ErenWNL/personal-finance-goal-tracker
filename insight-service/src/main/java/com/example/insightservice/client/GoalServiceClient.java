@@ -117,8 +117,9 @@ public class GoalServiceClient {
         if (goalMap.get("categoryId") != null) {
             dto.setCategoryId(Long.valueOf(goalMap.get("categoryId").toString()));
         }
-        if (goalMap.get("name") != null) {
-            dto.setName(goalMap.get("name").toString());
+        // Fixed: Changed from "name" to "title" to match Goal Service response
+        if (goalMap.get("title") != null) {
+            dto.setName(goalMap.get("title").toString());
         }
         if (goalMap.get("description") != null) {
             dto.setDescription(goalMap.get("description").toString());

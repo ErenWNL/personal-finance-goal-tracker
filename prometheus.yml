@@ -1,0 +1,113 @@
+# Prometheus Configuration for Personal Finance Goal Tracker
+# This file configures Prometheus to scrape metrics from all microservices
+
+global:
+  scrape_interval: 15s          # How often to scrape metrics
+  evaluation_interval: 15s      # How often to evaluate rules
+  external_labels:
+    monitor: 'personal-finance-monitor'
+
+# Alerting rules (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alert_rules.yml"
+
+# Scrape configurations for each service
+scrape_configs:
+  # =============================================
+  # Prometheus itself
+  # =============================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # =============================================
+  # API Gateway
+  # =============================================
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8081']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Authentication Service
+  # =============================================
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8082']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Finance Service
+  # =============================================
+  - job_name: 'finance-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['finance-service:8083']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Goal Service
+  # =============================================
+  - job_name: 'goal-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['goal-service:8084']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Insight Service
+  # =============================================
+  - job_name: 'insight-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['insight-service:8085']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Config Server
+  # =============================================
+  - job_name: 'config-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['config-server:8888']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Eureka Server
+  # =============================================
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-server:8761']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =============================================
+  # Node Exporter (System metrics) - Optional
+  # =============================================
+  # Uncomment if you deploy node_exporter for system-level metrics
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['localhost:9100']
+
+  # =============================================
+  # MySQL Exporter (Database metrics) - Optional
+  # =============================================
+  # Uncomment if you deploy MySQL exporter
+  # - job_name: 'mysql'
+  #   static_configs:
+  #     - targets: ['localhost:9104']

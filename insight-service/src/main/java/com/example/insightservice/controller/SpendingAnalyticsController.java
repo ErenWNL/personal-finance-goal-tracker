@@ -2,6 +2,12 @@ package com.example.insightservice.controller;
 
 import com.example.insightservice.entity.SpendingAnalytics;
 import com.example.insightservice.service.SpendingAnalyticsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,12 +19,19 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/analytics")
+@Tag(name = "Analytics", description = "Spending analytics and insights endpoints")
 public class SpendingAnalyticsController {
 
     @Autowired
     private SpendingAnalyticsService analyticsService;
 
     @GetMapping("/user/{userId}")
+    @Operation(summary = "Get spending analytics", description = "Get spending analytics for a user by period (DAILY, WEEKLY, MONTHLY, YEARLY)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Analytics retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<Map<String, Object>> getUserSpendingAnalytics(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "MONTHLY") String period) {
@@ -174,6 +187,7 @@ public class SpendingAnalyticsController {
     }
 
     @GetMapping("/health")
+    @Operation(summary = "Health check", description = "Check if the analytics service is running")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Insight Service - Analytics Controller is running!");
     }

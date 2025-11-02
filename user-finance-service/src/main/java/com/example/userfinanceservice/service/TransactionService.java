@@ -6,6 +6,9 @@ import com.example.userfinanceservice.dto.response.CategoryResponse;
 import com.example.userfinanceservice.dto.response.TransactionResponse;
 import com.example.userfinanceservice.entity.Transaction;
 import com.example.userfinanceservice.entity.TransactionCategory;
+import com.example.userfinanceservice.event.TransactionEvent;
+import com.example.userfinanceservice.event.TransactionEventProducer;
+import com.example.userfinanceservice.metrics.FinanceMetrics;
 import com.example.userfinanceservice.repository.TransactionRepository;
 import com.example.userfinanceservice.repository.TransactionCategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +34,12 @@ public class TransactionService {
 
     @Autowired
     private InsightServiceClient insightServiceClient;
+
+    @Autowired(required = false)
+    private TransactionEventProducer eventProducer;
+
+    @Autowired(required = false)
+    private FinanceMetrics metrics;
 
     public Map<String, Object> createTransaction(TransactionRequest request) {
         Map<String, Object> response = new HashMap<>();
@@ -78,6 +88,32 @@ public class TransactionService {
         transaction.setNotes(request.getNotes());
 
         Transaction savedTransaction = transactionRepository.save(transaction);
+
+        // Record metrics
+        if (metrics != null) {
+            metrics.recordTransactionCreated();
+            metrics.recordTransactionAmount(savedTransaction.getAmount().doubleValue());
+        }
+
+        // Publish Kafka event
+        if (eventProducer != null) {
+            try {
+                TransactionEvent event = new TransactionEvent(
+                    savedTransaction.getId(),
+                    savedTransaction.getUserId(),
+                    savedTransaction.getType().toString(),
+                    savedTransaction.getCategory().getName(),
+                    savedTransaction.getDescription(),
+                    savedTransaction.getAmount(),
+                    savedTransaction.getTransactionDate().atStartOfDay(),
+                    LocalDateTime.now(),
+                    "CREATED"
+                );
+                eventProducer.publishTransactionCreated(event);
+            } catch (Exception e) {
+                System.err.println("Failed to publish Kafka event: " + e.getMessage());
+            }
+        }
 
         // Notify Insight Service about new transaction
         try {

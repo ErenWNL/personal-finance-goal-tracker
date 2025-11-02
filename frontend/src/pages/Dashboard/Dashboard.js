@@ -1,31 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Target, 
-  DollarSign, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Target,
+  DollarSign,
   CreditCard,
   PlusCircle,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  AlertCircle,
+  Loader
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend 
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
 } from 'recharts';
 import { fetchUserGoals } from '../../store/slices/goalsSlice';
 import { fetchUserTransactions, fetchTransactionSummary } from '../../store/slices/transactionsSlice';
@@ -211,6 +214,64 @@ const ActivityAmount = styled.div`
   font-size: ${props => props.theme.fontSizes.sm};
 `;
 
+// Fixed: Add loading and error UI components
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: ${props => props.theme.spacing[4]};
+`;
+
+const Spinner = styled.div`
+  border: 4px solid ${props => props.theme.colors.gray[200]};
+  border-top: 4px solid ${props => props.theme.colors.primary[500]};
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: ${props => props.theme.spacing[8]};
+  text-align: center;
+  background: ${props => props.theme.colors.gray[50]};
+  border-radius: ${props => props.theme.borderRadius.lg};
+`;
+
+const EmptyStateIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: ${props => props.theme.spacing[4]};
+`;
+
+const ErrorContainer = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: ${props => props.theme.spacing[8]};
+  background: ${props => props.theme.colors.red[50]};
+  border-radius: ${props => props.theme.borderRadius.lg};
+  border: 2px solid ${props => props.theme.colors.red[200]};
+`;
+
+const ErrorIcon = styled.div`
+  color: ${props => props.theme.colors.red[600]};
+  margin-bottom: ${props => props.theme.spacing[4]};
+`;
+
 // Sample data for charts - will be replaced with backend data
 const defaultSpendingData = [
   { month: 'Jan', income: 0, expenses: 0 },
@@ -227,10 +288,15 @@ const defaultCategoryData = [
 
 const Dashboard = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const { goals, totalGoals, completedGoals } = useSelector((state) => state.goals);
-  const { transactions, summary } = useSelector((state) => state.transactions);
-  const { overview } = useSelector((state) => state.insights);
+  const { goals, totalGoals, completedGoals, isLoading: goalsLoading, error: goalsError } = useSelector((state) => state.goals);
+  const { transactions, summary, isLoading: transactionsLoading, error: transactionsError } = useSelector((state) => state.transactions);
+  const { overview, isLoading: insightsLoading, error: insightsError } = useSelector((state) => state.insights);
+
+  // Fixed: Track loading state
+  const isLoading = goalsLoading || transactionsLoading || insightsLoading;
+  const hasError = goalsError || transactionsError || insightsError;
 
   useEffect(() => {
     if (user?.id) {
@@ -332,7 +398,7 @@ const Dashboard = () => {
     }));
   };
 
-  // Calculate percentage changes (comparing with previous period)
+  // Fixed: Calculate percentage changes (comparing with previous period)
   const calculatePercentageChange = () => {
     if (!summary || !transactions || transactions.length < 2) {
       return { income: 0, expense: 0, balance: 0 };
@@ -365,10 +431,15 @@ const Dashboard = () => {
     const currentExpense = summary.totalExpense || 0;
     const expenseChange = prevExpense > 0 ? ((currentExpense - prevExpense) / prevExpense) * 100 : 0;
 
+    // Fixed: Calculate balance change properly instead of hardcoding
+    const prevBalance = prevIncome - prevExpense;
+    const currentBalance = currentIncome - currentExpense;
+    const balanceChange = prevBalance !== 0 ? ((currentBalance - prevBalance) / Math.abs(prevBalance)) * 100 : 0;
+
     return {
       income: parseFloat(incomeChange.toFixed(1)),
       expense: parseFloat(expenseChange.toFixed(1)),
-      balance: parseFloat(((currentIncome - currentExpense) > 0 ? 8.1 : -5).toFixed(1))
+      balance: parseFloat(balanceChange.toFixed(1))
     };
   };
 
@@ -376,6 +447,48 @@ const Dashboard = () => {
   const categoryData = transformCategoryData();
   const recentActivities = getRecentActivities();
   const percentageChanges = calculatePercentageChange();
+
+  // Fixed: Add loading state display
+  if (isLoading && !transactions?.length && !goals?.length) {
+    return (
+      <DashboardContainer>
+        <LoadingContainer>
+          <Spinner />
+          <Text size={props => props.theme.fontSizes.lg}>
+            Loading your financial dashboard...
+          </Text>
+        </LoadingContainer>
+      </DashboardContainer>
+    );
+  }
+
+  // Fixed: Add error state display
+  if (hasError) {
+    return (
+      <DashboardContainer>
+        <ErrorContainer
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <ErrorIcon>
+            <AlertCircle size={48} />
+          </ErrorIcon>
+          <Heading level={2}>Unable to Load Dashboard</Heading>
+          <Text color={props => props.theme.colors.red[600]}>
+            {goalsError || transactionsError || insightsError || 'An error occurred while loading your data'}
+          </Text>
+          <Button
+            variant="primary"
+            onClick={() => window.location.reload()}
+            style={{ marginTop: '20px' }}
+          >
+            Try Again
+          </Button>
+        </ErrorContainer>
+      </DashboardContainer>
+    );
+  }
 
   return (
     <DashboardContainer>
@@ -393,11 +506,20 @@ const Dashboard = () => {
               Here's your financial overview for today. You're doing great!
             </WelcomeSubtitle>
             <QuickActions>
-              <Button variant="secondary" size="sm">
+              {/* Fixed: Add navigation to actual pages */}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/transactions')}
+              >
                 <PlusCircle size={16} />
                 Add Transaction
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/goals')}
+              >
                 <Target size={16} />
                 Create Goal
               </Button>
@@ -415,7 +537,7 @@ const Dashboard = () => {
         >
           <StatHeader>
             <div>
-              <StatValue>{formatCurrency(summary.totalIncome)}</StatValue>
+              <StatValue>{formatCurrency(summary?.totalIncome || 0)}</StatValue>
               <StatLabel>Total Income</StatLabel>
             </div>
             <StatIcon color="#dcfce7" iconColor="#16a34a">
@@ -436,7 +558,7 @@ const Dashboard = () => {
         >
           <StatHeader>
             <div>
-              <StatValue>{formatCurrency(summary.totalExpense)}</StatValue>
+              <StatValue>{formatCurrency(summary?.totalExpense || 0)}</StatValue>
               <StatLabel>Total Expenses</StatLabel>
             </div>
             <StatIcon color="#fee2e2" iconColor="#dc2626">
@@ -457,7 +579,7 @@ const Dashboard = () => {
         >
           <StatHeader>
             <div>
-              <StatValue>{formatCurrency(summary.balance)}</StatValue>
+              <StatValue>{formatCurrency(summary?.balance || 0)}</StatValue>
               <StatLabel>Current Balance</StatLabel>
             </div>
             <StatIcon color="#dbeafe" iconColor="#2563eb">
@@ -478,7 +600,7 @@ const Dashboard = () => {
         >
           <StatHeader>
             <div>
-              <StatValue>{totalGoals}</StatValue>
+              <StatValue>{totalGoals || 0}</StatValue>
               <StatLabel>Active Goals</StatLabel>
             </div>
             <StatIcon color="#ede9fe" iconColor="#8b5cf6">
@@ -487,7 +609,7 @@ const Dashboard = () => {
           </StatHeader>
           <StatChange positive>
             <ArrowUpRight size={16} />
-            {completedGoals} completed
+            {completedGoals || 0} completed
           </StatChange>
         </StatCard>
       </StatsGrid>
@@ -501,7 +623,8 @@ const Dashboard = () => {
         >
           <ChartHeader>
             <ChartTitle level={3}>Income vs Expenses</ChartTitle>
-            <Button variant="outline" size="sm">View Details</Button>
+            {/* Fixed: Add navigation to insights page */}
+            <Button variant="outline" size="sm" onClick={() => navigate('/insights')}>View Details</Button>
           </ChartHeader>
           <ResponsiveContainer width="100%" height="85%">
             <AreaChart data={spendingData}>
@@ -569,7 +692,8 @@ const Dashboard = () => {
       >
         <ChartHeader>
           <ChartTitle level={3}>Recent Activity</ChartTitle>
-          <Button variant="outline" size="sm">View All</Button>
+          {/* Fixed: Add navigation to transactions page */}
+          <Button variant="outline" size="sm" onClick={() => navigate('/transactions')}>View All</Button>
         </ChartHeader>
         
         {recentActivities.map((activity, index) => {
