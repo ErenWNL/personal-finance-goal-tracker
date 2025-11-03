@@ -1,0 +1,105 @@
+# Docker Compose for Jenkins Deployment
+# Uses pre-built images from Docker Hub instead of building
+# This avoids Docker credential helper issues
+
+services:
+  eureka-server:
+    image: personalfinance/eureka-server:latest
+    ports:
+      - "8761:8761"
+    networks:
+      - finance-network
+
+  config-server:
+    image: personalfinance/config-server:latest
+    ports:
+      - "8888:8888"
+    depends_on:
+      - eureka-server
+    environment:
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config
+    networks:
+      - finance-network
+
+  api-gateway:
+    image: personalfinance/api-gateway:latest
+    ports:
+      - "8081:8081"
+    depends_on:
+      - eureka-server
+      - config-server
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    networks:
+      - finance-network
+
+  authentication-service:
+    image: personalfinance/authentication-service:latest
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+      - config-server
+      - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    networks:
+      - finance-network
+
+  user-finance-service:
+    image: personalfinance/user-finance-service:latest
+    ports:
+      - "8083:8083"
+    depends_on:
+      - eureka-server
+      - config-server
+      - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    networks:
+      - finance-network
+
+  goal-service:
+    image: personalfinance/goal-service:latest
+    ports:
+      - "8084:8084"
+    depends_on:
+      - eureka-server
+      - config-server
+      - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    networks:
+      - finance-network
+
+  insight-service:
+    image: personalfinance/insight-service:latest
+    ports:
+      - "8085:8085"
+    depends_on:
+      - eureka-server
+      - config-server
+      - db
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    networks:
+      - finance-network
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root@123
+      MYSQL_DATABASE: auth_service_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - finance-network
+
+volumes:
+  db_data:
+
+networks:
+  finance-network:
+    driver: bridge
