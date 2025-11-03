@@ -126,6 +126,15 @@ pipeline {
                         sh '''
                             cd ${WORKSPACE}
 
+                            echo "Fixing Docker credential helper issue..."
+                            mkdir -p ~/.docker
+                            cat > ~/.docker/config.json << 'EOF'
+{
+  "auths": {},
+  "credHelpers": {}
+}
+EOF
+
                             echo "Starting services with docker-compose..."
                             /usr/local/bin/docker-compose -f docker-compose-jenkins.yml up -d
 
