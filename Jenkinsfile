@@ -135,6 +135,16 @@ pipeline {
 }
 EOF
 
+                            echo "Pre-pulling Docker images..."
+                            /usr/local/bin/docker pull mysql:8.0 || true
+                            /usr/local/bin/docker pull personalfinance/eureka-server:latest || true
+                            /usr/local/bin/docker pull personalfinance/config-server:latest || true
+                            /usr/local/bin/docker pull personalfinance/api-gateway:latest || true
+                            /usr/local/bin/docker pull personalfinance/authentication-service:latest || true
+                            /usr/local/bin/docker pull personalfinance/user-finance-service:latest || true
+                            /usr/local/bin/docker pull personalfinance/goal-service:latest || true
+                            /usr/local/bin/docker pull personalfinance/insight-service:latest || true
+
                             echo "Starting services with docker-compose..."
                             /usr/local/bin/docker-compose -f docker-compose-jenkins.yml up -d
 
