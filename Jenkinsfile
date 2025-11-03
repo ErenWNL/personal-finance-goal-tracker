@@ -136,6 +136,14 @@ pipeline {
                         echo "Cleaning up stale containers..."
                         /usr/local/bin/docker ps -a --filter "name=finance-pipeline" --format "{{.ID}}" | xargs -r /usr/local/bin/docker rm -f 2>/dev/null || echo "No stale containers"
 
+                        # Remove old mysql containers
+                        echo "Removing old MySQL containers..."
+                        /usr/local/bin/docker ps -a --filter "name=mysql" --format "{{.ID}}" | xargs -r /usr/local/bin/docker rm -f 2>/dev/null || echo "No old MySQL containers"
+
+                        # Kill any processes using port 3306
+                        echo "Freeing up port 3306..."
+                        lsof -ti:3306 | xargs kill -9 2>/dev/null || echo "Port 3306 already free"
+
                         # Clean up any dangling networks and volumes
                         echo "Cleaning up dangling networks and volumes..."
                         /usr/local/bin/docker network prune -f 2>/dev/null || echo "No networks to prune"
