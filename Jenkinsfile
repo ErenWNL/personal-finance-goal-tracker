@@ -19,11 +19,8 @@ pipeline {
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
     }
 
-    triggers {
-        // Trigger using Poll SCM - checks GitHub every 5 minutes
-        // Configure in Jenkins job: Build Triggers → Poll SCM → Schedule: H/5 * * * *
-        // No need to configure here
-    }
+    // Poll SCM is configured in Jenkins job UI, not here
+    // Build Triggers → Poll SCM → Schedule: H/5 * * * *
 
     options {
         // Keep last 10 builds
