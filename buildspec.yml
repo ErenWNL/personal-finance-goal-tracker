@@ -1,0 +1,101 @@
+version: 0.2
+
+# AWS CodeBuild buildspec for Personal Finance Goal Tracker
+# This file orchestrates: Build → Test → Docker → Push to ECR
+
+env:
+  variables:
+    AWS_ACCOUNT_ID: "012514677840"  # Replace with your AWS account ID
+    AWS_DEFAULT_REGION: "us-east-1"
+    IMAGE_REPO_NAME: "personal-finance"
+    IMAGE_TAG: "latest"
+
+phases:
+  pre_build:
+    commands:
+      - echo "=========================================="
+      - echo "Phase 1: Pre-Build Setup"
+      - echo "=========================================="
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo "REPOSITORY_URI=$REPOSITORY_URI" >> /tmp/image-tag.txt
+      - echo "IMAGE_TAG=$IMAGE_TAG" >> /tmp/image-tag.txt
+      - echo "Repository URI: $REPOSITORY_URI"
+      - echo "Image Tag: $IMAGE_TAG"
+
+  build:
+    commands:
+      - echo "=========================================="
+      - echo "Phase 2: Maven Build & Test"
+      - echo "=========================================="
+      - echo "Building Maven project on `date`"
+      - mvn clean install -DskipTests=true
+      - echo "Maven build completed successfully"
+
+  post_build:
+    commands:
+      - echo "=========================================="
+      - echo "Phase 3: Run Unit Tests"
+      - echo "=========================================="
+      - echo "Running unit tests..."
+      - mvn test -X
+      - echo "Unit tests completed"
+      - echo ""
+      - echo "=========================================="
+      - echo "Phase 4: Build Docker Images"
+      - echo "=========================================="
+      - echo "Building Docker images and pushing to ECR on `date`"
+      - |
+        for service in authentication-service user-finance-service goal-service insight-service api-gateway eureka-server config-server; do
+          echo "Building image for $service..."
+          docker build -t $REPOSITORY_URI:$service-$IMAGE_TAG -f $service/Dockerfile $service/
+          if [ $? -eq 0 ]; then
+            echo "✓ Docker image built successfully: $service"
+          else
+            echo "✗ Failed to build Docker image: $service"
+            exit 1
+          fi
+        done
+      - echo ""
+      - echo "=========================================="
+      - echo "Phase 5: Push Images to ECR"
+      - echo "=========================================="
+      - |
+        for service in authentication-service user-finance-service goal-service insight-service api-gateway eureka-server config-server; do
+          echo "Pushing $service image to ECR..."
+          docker push $REPOSITORY_URI:$service-$IMAGE_TAG
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully pushed: $service:$IMAGE_TAG"
+          else
+            echo "✗ Failed to push: $service"
+            exit 1
+          fi
+        done
+      - echo "All Docker images pushed to ECR successfully"
+      - echo ""
+      - echo "=========================================="
+      - echo "Build completed on `date`"
+      - echo "=========================================="
+
+artifacts:
+  files:
+    - /tmp/image-tag.txt
+  name: BuildArtifact
+
+cache:
+  paths:
+    - '/root/.m2/**/*'
+
+reports:
+  maven-test-report:
+    files:
+      - '**/target/surefire-reports/TEST-*.xml'
+    file-format: 'JunitXml'
+
+logs:
+  CloudWatch:
+    group_name: /aws/codebuild/personal-finance-pipeline
+    stream_name: codebuild-log-stream
