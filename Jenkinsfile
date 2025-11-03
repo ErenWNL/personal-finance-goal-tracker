@@ -68,13 +68,13 @@ pipeline {
                 script {
                     sh '''
                         echo "Checking Docker installation..."
-                        docker --version || echo "⚠ Docker not found in PATH"
+                        /usr/local/bin/docker --version || echo "⚠ Docker not found"
 
                         echo "Checking Docker Compose installation..."
-                        docker-compose --version || echo "⚠ Docker Compose not found in PATH"
+                        /usr/local/bin/docker-compose --version || echo "⚠ Docker Compose not found"
 
-                        echo "Using system Docker from: $(which docker 2>/dev/null || echo 'NOT FOUND')"
-                        echo "Using system Docker Compose from: $(which docker-compose 2>/dev/null || echo 'NOT FOUND')"
+                        echo "Docker path: /usr/local/bin/docker"
+                        echo "Docker Compose path: /usr/local/bin/docker-compose"
                     '''
                 }
             }
@@ -88,19 +88,10 @@ pipeline {
 
                 script {
                     sh '''
-                        echo "Creating deployment directory..."
-                        mkdir -p ${DEPLOYMENT_DIR}
+                        echo "Copying docker-compose.yml to workspace..."
+                        cp ${WORKSPACE}/docker-compose.yml ${WORKSPACE}/docker-compose-deploy.yml || echo "Using default docker-compose.yml"
 
-                        echo "Copying docker-compose.yml..."
-                        cp ${WORKSPACE}/${DOCKER_COMPOSE_FILE} ${DEPLOYMENT_DIR}/
-
-                        echo "Copying environment files..."
-                        if [ -f "${WORKSPACE}/.env" ]; then
-                            cp ${WORKSPACE}/.env ${DEPLOYMENT_DIR}/
-                        fi
-
-                        echo "✓ Deployment directory prepared"
-                        ls -la ${DEPLOYMENT_DIR}/
+                        echo "✓ Deployment files prepared"
                     '''
                 }
             }
@@ -114,10 +105,9 @@ pipeline {
 
                 script {
                     sh '''
-                        cd ${DEPLOYMENT_DIR}
-
                         echo "Stopping existing containers..."
-                        docker-compose down || echo "No containers running"
+                        cd ${WORKSPACE}
+                        /usr/local/bin/docker-compose down || echo "No containers running"
 
                         echo "✓ Containers stopped"
                     '''
@@ -134,10 +124,10 @@ pipeline {
                 script {
                     try {
                         sh '''
-                            cd ${DEPLOYMENT_DIR}
+                            cd ${WORKSPACE}
 
                             echo "Starting services with docker-compose..."
-                            docker-compose up -d
+                            /usr/local/bin/docker-compose up -d
 
                             echo ""
                             echo "Waiting for services to start..."
@@ -146,7 +136,7 @@ pipeline {
                             echo "✓ Services started successfully"
                             echo ""
                             echo "Running services:"
-                            docker-compose ps
+                            /usr/local/bin/docker-compose ps
                         '''
                     } catch (Exception e) {
                         echo "✗ Docker compose failed: ${e.message}"
