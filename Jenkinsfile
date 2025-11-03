@@ -20,8 +20,9 @@ pipeline {
     }
 
     triggers {
-        // Trigger on GitHub push
-        githubPush()
+        // Trigger using Poll SCM - checks GitHub every 5 minutes
+        // Configure in Jenkins job: Build Triggers → Poll SCM → Schedule: H/5 * * * *
+        // No need to configure here
     }
 
     options {
@@ -44,8 +45,7 @@ pipeline {
                     $class: 'GitSCM',
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/ErenWNL/personal-finance-goal-tracker.git',
-                        credentialsId: 'github-credentials'
+                        url: 'https://github.com/ErenWNL/personal-finance-goal-tracker.git'
                     ]]
                 ])
 
