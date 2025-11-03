@@ -6,8 +6,7 @@ pipeline {
 
     environment {
         // Docker Hub Configuration
-        DOCKER_HUB_USERNAME = credentials('dockerhub-username')
-        DOCKER_HUB_PASSWORD = credentials('dockerhub-password')
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         DOCKER_HUB_REGISTRY = 'docker.io'
 
         // GitHub Configuration
@@ -70,7 +69,7 @@ pipeline {
                     try {
                         sh '''
                             echo "Logging in to Docker Hub..."
-                            echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+                            echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
 
                             echo "Pulling Docker images from Docker Hub..."
 
