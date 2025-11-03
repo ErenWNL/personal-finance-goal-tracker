@@ -88,8 +88,8 @@ pipeline {
 
                 script {
                     sh '''
-                        echo "Copying docker-compose.yml to workspace..."
-                        cp ${WORKSPACE}/docker-compose.yml ${WORKSPACE}/docker-compose-deploy.yml || echo "Using default docker-compose.yml"
+                        echo "Using Jenkins-specific docker-compose file..."
+                        echo "This file uses pre-built images from Docker Hub"
 
                         echo "✓ Deployment files prepared"
                     '''
@@ -107,7 +107,7 @@ pipeline {
                     sh '''
                         echo "Stopping existing containers..."
                         cd ${WORKSPACE}
-                        /usr/local/bin/docker-compose down || echo "No containers running"
+                        /usr/local/bin/docker-compose -f docker-compose-jenkins.yml down || echo "No containers running"
 
                         echo "✓ Containers stopped"
                     '''
@@ -127,7 +127,7 @@ pipeline {
                             cd ${WORKSPACE}
 
                             echo "Starting services with docker-compose..."
-                            /usr/local/bin/docker-compose up -d
+                            /usr/local/bin/docker-compose -f docker-compose-jenkins.yml up -d
 
                             echo ""
                             echo "Waiting for services to start..."
@@ -136,7 +136,7 @@ pipeline {
                             echo "✓ Services started successfully"
                             echo ""
                             echo "Running services:"
-                            /usr/local/bin/docker-compose ps
+                            /usr/local/bin/docker-compose -f docker-compose-jenkins.yml ps
                         '''
                     } catch (Exception e) {
                         echo "✗ Docker compose failed: ${e.message}"
