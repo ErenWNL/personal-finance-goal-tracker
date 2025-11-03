@@ -128,7 +128,17 @@ pipeline {
                     sh '''
                         echo "Stopping existing containers..."
                         cd ${WORKSPACE}
-                        /usr/local/bin/docker-compose down || echo "No containers running"
+
+                        # First try graceful shutdown
+                        /usr/local/bin/docker-compose down || echo "No docker-compose containers"
+
+                        # Force remove any remaining containers with the same name prefix
+                        echo "Cleaning up stale containers..."
+                        /usr/local/bin/docker ps -a --filter "name=finance-pipeline" --format "{{.ID}}" | xargs -r /usr/local/bin/docker rm -f 2>/dev/null || echo "No stale containers"
+
+                        # Clean up any dangling networks and volumes
+                        echo "Cleaning up dangling networks and volumes..."
+                        /usr/local/bin/docker network prune -f 2>/dev/null || echo "No networks to prune"
 
                         echo "✓ Containers stopped"
                     '''
