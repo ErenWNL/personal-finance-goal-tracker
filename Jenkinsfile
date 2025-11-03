@@ -98,7 +98,8 @@ pipeline {
                             echo "Building $service..."
                             if [ -d "$service" ] && [ -f "$service/pom.xml" ]; then
                                 cd "$service"
-                                mvn clean package -DskipTests -q
+                                chmod +x ./mvnw
+                                ./mvnw clean package -DskipTests -q
                                 if [ $? -eq 0 ]; then
                                     echo "✓ $service built successfully"
                                 else
