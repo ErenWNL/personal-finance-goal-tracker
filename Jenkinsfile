@@ -14,7 +14,7 @@ pipeline {
         GITHUB_BRANCH = 'main'
 
         // Docker Compose Configuration
-        DEPLOYMENT_DIR = '/home/jenkins/deployments/personal-finance'
+        DEPLOYMENT_DIR = "${WORKSPACE}/deployment"
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'
     }
 
@@ -59,45 +59,23 @@ pipeline {
             }
         }
 
-        stage('Pull Docker Images from Docker Hub') {
+        stage('Verify Docker & Docker Compose') {
             steps {
                 echo '=========================================='
-                echo 'Stage 2: Pull Docker Images from Docker Hub'
+                echo 'Stage 2: Verify Docker & Docker Compose'
                 echo '=========================================='
 
                 script {
-                    try {
-                        sh '''
-                            echo "Logging in to Docker Hub..."
-                            echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
+                    sh '''
+                        echo "Checking Docker installation..."
+                        docker --version || echo "⚠ Docker not found in PATH"
 
-                            echo "Pulling Docker images from Docker Hub..."
+                        echo "Checking Docker Compose installation..."
+                        docker-compose --version || echo "⚠ Docker Compose not found in PATH"
 
-                            SERVICES="authentication-service user-finance-service goal-service insight-service api-gateway eureka-server config-server"
-
-                            for service in $SERVICES; do
-                                echo ""
-                                echo "Pulling $service..."
-                                docker pull personalfinance/$service:latest
-
-                                if [ $? -eq 0 ]; then
-                                    echo "✓ Successfully pulled: $service:latest"
-                                else
-                                    echo "⚠ Warning: Could not pull $service (may not exist yet)"
-                                fi
-                            done
-
-                            echo ""
-                            echo "=========================================="
-                            echo "Docker Hub images pulled successfully"
-                            echo "=========================================="
-
-                            docker logout
-                        '''
-                    } catch (Exception e) {
-                        echo "⚠ Docker pull encountered issues: ${e.message}"
-                        // Continue anyway - images might already exist locally
-                    }
+                        echo "Using system Docker from: $(which docker 2>/dev/null || echo 'NOT FOUND')"
+                        echo "Using system Docker Compose from: $(which docker-compose 2>/dev/null || echo 'NOT FOUND')"
+                    '''
                 }
             }
         }
