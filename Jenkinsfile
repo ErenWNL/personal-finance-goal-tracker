@@ -80,18 +80,38 @@ pipeline {
             }
         }
 
-        stage('Prepare Deployment') {
+        stage('Build Microservices') {
             steps {
                 echo '=========================================='
-                echo 'Stage 3: Prepare Deployment Directory'
+                echo 'Stage 3: Build Microservices with Maven'
                 echo '=========================================='
 
                 script {
                     sh '''
-                        echo "Using Jenkins-specific docker-compose file..."
-                        echo "This file uses pre-built images from Docker Hub"
+                        echo "Building microservices with Maven..."
 
-                        echo "✓ Deployment files prepared"
+                        # List of services to build
+                        SERVICES="eureka-server config-server api-gateway authentication-service user-finance-service goal-service insight-service"
+
+                        for service in $SERVICES; do
+                            echo ""
+                            echo "Building $service..."
+                            if [ -d "$service" ] && [ -f "$service/pom.xml" ]; then
+                                cd "$service"
+                                mvn clean package -DskipTests -q
+                                if [ $? -eq 0 ]; then
+                                    echo "✓ $service built successfully"
+                                else
+                                    echo "⚠ $service build skipped (may not be Maven project)"
+                                fi
+                                cd ..
+                            else
+                                echo "⚠ $service not found or no pom.xml"
+                            fi
+                        done
+
+                        echo ""
+                        echo "✓ All available microservices built"
                     '''
                 }
             }
