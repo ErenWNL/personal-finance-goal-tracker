@@ -107,7 +107,7 @@ pipeline {
                     sh '''
                         echo "Stopping existing containers..."
                         cd ${WORKSPACE}
-                        /usr/local/bin/docker-compose -f docker-compose-jenkins.yml down || echo "No containers running"
+                        /usr/local/bin/docker-compose down || echo "No containers running"
 
                         echo "✓ Containers stopped"
                     '''
@@ -126,36 +126,17 @@ pipeline {
                         sh '''
                             cd ${WORKSPACE}
 
-                            echo "Fixing Docker credential helper issue..."
-                            mkdir -p ~/.docker
-                            cat > ~/.docker/config.json << 'EOF'
-{
-  "auths": {},
-  "credHelpers": {}
-}
-EOF
-
-                            echo "Pre-pulling Docker images..."
-                            /usr/local/bin/docker pull mysql:8.0 || true
-                            /usr/local/bin/docker pull personalfinance/eureka-server:latest || true
-                            /usr/local/bin/docker pull personalfinance/config-server:latest || true
-                            /usr/local/bin/docker pull personalfinance/api-gateway:latest || true
-                            /usr/local/bin/docker pull personalfinance/authentication-service:latest || true
-                            /usr/local/bin/docker pull personalfinance/user-finance-service:latest || true
-                            /usr/local/bin/docker pull personalfinance/goal-service:latest || true
-                            /usr/local/bin/docker pull personalfinance/insight-service:latest || true
-
-                            echo "Starting services with docker-compose..."
-                            /usr/local/bin/docker-compose -f docker-compose-jenkins.yml up -d
+                            echo "Building and starting services with docker-compose..."
+                            /usr/local/bin/docker-compose up -d --build
 
                             echo ""
                             echo "Waiting for services to start..."
-                            sleep 10
+                            sleep 15
 
                             echo "✓ Services started successfully"
                             echo ""
                             echo "Running services:"
-                            /usr/local/bin/docker-compose -f docker-compose-jenkins.yml ps
+                            /usr/local/bin/docker-compose ps
                         '''
                     } catch (Exception e) {
                         echo "✗ Docker compose failed: ${e.message}"
