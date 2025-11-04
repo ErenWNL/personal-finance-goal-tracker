@@ -182,8 +182,24 @@ DOCKER_CONFIG
 }
 DOCKER_CONFIG
 
-                            echo "Pre-pulling base Docker image..."
-                            /usr/local/bin/docker pull openjdk:24-slim || echo "⚠ Pre-pull failed, will attempt with docker-compose"
+                            echo "Pre-pulling base Docker image with retry logic..."
+                            MAX_ATTEMPTS=3
+                            ATTEMPT=1
+                            until [ $ATTEMPT -gt $MAX_ATTEMPTS ]; do
+                                echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
+                                if /usr/local/bin/docker pull openjdk:24-slim; then
+                                    echo "✓ Image pulled successfully"
+                                    break
+                                fi
+                                if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                                    WAIT_TIME=$((ATTEMPT * 5))
+                                    echo "⚠ Pre-pull failed, retrying in ${WAIT_TIME}s..."
+                                    sleep $WAIT_TIME
+                                else
+                                    echo "⚠ Pre-pull failed after $MAX_ATTEMPTS attempts, continuing with docker-compose..."
+                                fi
+                                ATTEMPT=$((ATTEMPT + 1))
+                            done
 
                             echo ""
                             echo "Building and starting services with docker-compose..."
