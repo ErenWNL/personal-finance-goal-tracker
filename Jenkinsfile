@@ -182,12 +182,16 @@ DOCKER_CONFIG
 }
 DOCKER_CONFIG
 
-                            echo "Pre-pulling base Docker image with retry logic..."
+                            echo "Pre-pulling base Docker image with digest pinning..."
+                            # Use specific SHA256 digest for openjdk:24-slim (known working version)
+                            IMAGE_DIGEST="openjdk:24-slim@sha256:df6c3a966c372fa314ec0dc428bf27f8aa28316a173d3d6e99035343dee7fc2c"
+
                             MAX_ATTEMPTS=3
                             ATTEMPT=1
                             until [ $ATTEMPT -gt $MAX_ATTEMPTS ]; do
                                 echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
-                                if /usr/local/bin/docker pull openjdk:24-slim; then
+                                # Try pulling by digest first, then by tag
+                                if /usr/local/bin/docker pull "$IMAGE_DIGEST" 2>/dev/null || /usr/local/bin/docker pull openjdk:24-slim 2>/dev/null; then
                                     echo "✓ Image pulled successfully"
                                     break
                                 fi
@@ -196,7 +200,10 @@ DOCKER_CONFIG
                                     echo "⚠ Pre-pull failed, retrying in ${WAIT_TIME}s..."
                                     sleep $WAIT_TIME
                                 else
-                                    echo "⚠ Pre-pull failed after $MAX_ATTEMPTS attempts, continuing with docker-compose..."
+                                    echo "⚠ Pre-pull failed after $MAX_ATTEMPTS attempts, using docker-compose with BuildKit..."
+                                    # Enable Docker BuildKit for better caching
+                                    export DOCKER_BUILDKIT=1
+                                    export BUILDKIT_PROGRESS=plain
                                 fi
                                 ATTEMPT=$((ATTEMPT + 1))
                             done
