@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,8 +36,23 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Invalid request or user already exists"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
-        Map<String, Object> response = authService.register(request);
+    public ResponseEntity<Map<String, Object>> register(@org.springframework.web.bind.annotation.RequestBody String rawBody) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            RegisterRequest request = mapper.readValue(rawBody, RegisterRequest.class);
+
+            System.out.println("Raw body: " + rawBody);
+            System.out.println("Parsed email: " + request.getEmail());
+            System.out.println("Parsed password: " + request.getPassword());
+
+            response = authService.register(request);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error parsing request: " + e.getMessage());
+            System.err.println("Parse error: " + e.getMessage());
+            e.printStackTrace();
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -47,8 +64,16 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Invalid credentials"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request) {
-        Map<String, Object> response = authService.login(request);
+    public ResponseEntity<Map<String, Object>> login(@org.springframework.web.bind.annotation.RequestBody String rawBody) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            LoginRequest request = mapper.readValue(rawBody, LoginRequest.class);
+            response = authService.login(request);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error parsing request: " + e.getMessage());
+        }
         return ResponseEntity.ok(response);
     }
 
