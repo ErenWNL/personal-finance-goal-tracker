@@ -182,6 +182,10 @@ DOCKER_CONFIG
 }
 DOCKER_CONFIG
 
+                            echo "Pre-pulling base Docker image..."
+                            /usr/local/bin/docker pull openjdk:24-slim || echo "⚠ Pre-pull failed, will attempt with docker-compose"
+
+                            echo ""
                             echo "Building and starting services with docker-compose..."
                             /usr/local/bin/docker-compose up -d --build
 
