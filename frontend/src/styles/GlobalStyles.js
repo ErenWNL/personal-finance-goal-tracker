@@ -190,7 +190,9 @@ export const Card = styled.div`
   }
 `;
 
-export const Button = styled.button`
+export const Button = styled.button.withConfig({
+  shouldForwardProp: (prop) => !['variant', 'size', 'fullWidth'].includes(prop),
+})`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -212,7 +214,7 @@ export const Button = styled.button`
   }
 
   /* Primary variant */
-  ${props => props.variant === 'primary' && `
+  ${props => props.$variant === 'primary' && `
     background: ${props.theme.colors.primary[600]};
     color: ${props.theme.colors.white};
 
@@ -226,7 +228,7 @@ export const Button = styled.button`
   `}
 
   /* Secondary variant */
-  ${props => props.variant === 'secondary' && `
+  ${props => props.$variant === 'secondary' && `
     background: ${props.theme.colors.gray[100]};
     color: ${props.theme.colors.gray[700]};
 
@@ -240,7 +242,7 @@ export const Button = styled.button`
   `}
 
   /* Outline variant */
-  ${props => props.variant === 'outline' && `
+  ${props => props.$variant === 'outline' && `
     background: transparent;
     color: ${props.theme.colors.primary[600]};
     border: 1px solid ${props.theme.colors.primary[600]};
@@ -255,7 +257,7 @@ export const Button = styled.button`
   `}
 
   /* Success variant */
-  ${props => props.variant === 'success' && `
+  ${props => props.$variant === 'success' && `
     background: ${props.theme.colors.success[600]};
     color: ${props.theme.colors.white};
 
@@ -269,7 +271,7 @@ export const Button = styled.button`
   `}
 
   /* Danger variant */
-  ${props => props.variant === 'danger' && `
+  ${props => props.$variant === 'danger' && `
     background: ${props.theme.colors.error[600]};
     color: ${props.theme.colors.white};
 
@@ -283,25 +285,27 @@ export const Button = styled.button`
   `}
 
   /* Size variants */
-  ${props => props.size === 'sm' && `
+  ${props => props.$size === 'sm' && `
     padding: ${props.theme.spacing[2]} ${props.theme.spacing[4]};
     font-size: ${props.theme.fontSizes.xs};
     min-height: 36px;
   `}
 
-  ${props => props.size === 'lg' && `
+  ${props => props.$size === 'lg' && `
     padding: ${props.theme.spacing[4]} ${props.theme.spacing[8]};
     font-size: ${props.theme.fontSizes.base};
     min-height: 52px;
   `}
 
   /* Full width */
-  ${props => props.fullWidth && `
+  ${props => props.$fullWidth && `
     width: 100%;
   `}
 `;
 
-export const Input = styled.input`
+export const Input = styled.input.withConfig({
+  shouldForwardProp: (prop) => prop !== 'error',
+})`
   width: 100%;
   padding: ${props => props.theme.spacing[3]};
   font-size: ${props => props.theme.fontSizes.sm};
@@ -325,9 +329,9 @@ export const Input = styled.input`
     cursor: not-allowed;
   }
 
-  ${props => props.error && `
+  ${props => props.$error && `
     border-color: ${props.theme.colors.error[500]};
-    
+
     &:focus {
       border-color: ${props.theme.colors.error[500]};
       box-shadow: 0 0 0 3px ${props.theme.colors.error[100]};
