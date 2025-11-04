@@ -88,6 +88,14 @@ pipeline {
 
                 script {
                     sh '''
+                        # Fix Docker credential helper issue preemptively
+                        mkdir -p ~/.docker
+                        cat > ~/.docker/config.json << 'DOCKER_CONFIG'
+{
+    "auths": {}
+}
+DOCKER_CONFIG
+
                         echo "Building microservices with Maven..."
 
                         # List of services to build
@@ -164,6 +172,15 @@ pipeline {
                     try {
                         sh '''
                             cd ${WORKSPACE}
+
+                            # Fix Docker credential helper issue
+                            # Remove auths from Docker config if it causes issues
+                            mkdir -p ~/.docker
+                            cat > ~/.docker/config.json << 'DOCKER_CONFIG'
+{
+    "auths": {}
+}
+DOCKER_CONFIG
 
                             echo "Building and starting services with docker-compose..."
                             /usr/local/bin/docker-compose up -d --build
