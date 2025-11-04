@@ -185,14 +185,17 @@ DOCKER_CONFIG
                             echo "Pre-pulling base Docker image with digest pinning..."
                             # Use specific SHA256 digest for openjdk:24-slim (known working version)
                             IMAGE_DIGEST="openjdk:24-slim@sha256:df6c3a966c372fa314ec0dc428bf27f8aa28316a173d3d6e99035343dee7fc2c"
+                            IMAGE_TAG="openjdk:24-slim"
 
                             MAX_ATTEMPTS=3
                             ATTEMPT=1
                             until [ $ATTEMPT -gt $MAX_ATTEMPTS ]; do
                                 echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
                                 # Try pulling by digest first, then by tag
-                                if /usr/local/bin/docker pull "$IMAGE_DIGEST" 2>/dev/null || /usr/local/bin/docker pull openjdk:24-slim 2>/dev/null; then
+                                if /usr/local/bin/docker pull "$IMAGE_DIGEST" 2>/dev/null || /usr/local/bin/docker pull "$IMAGE_TAG" 2>/dev/null; then
                                     echo "✓ Image pulled successfully"
+                                    # Create a tag alias so Dockerfiles can reference it
+                                    /usr/local/bin/docker tag "$IMAGE_DIGEST" "$IMAGE_TAG" 2>/dev/null || true
                                     break
                                 fi
                                 if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
