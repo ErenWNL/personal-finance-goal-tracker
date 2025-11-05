@@ -1,6 +1,204 @@
-version: '3.8'
-
 services:
+  # =============================================
+  # Service Discovery - Eureka Server
+  # =============================================
+  eureka-server:
+    build: ./eureka-server
+    container_name: personal-finance-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # Configuration Server
+  # =============================================
+  config-server:
+    build: ./config-server
+    container_name: personal-finance-config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      eureka-server:
+        condition: service_started
+    environment:
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # MySQL Database
+  # =============================================
+  db:
+    image: mysql:8.0
+    container_name: personal-finance-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root@123
+      MYSQL_DATABASE: auth_service_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # API Gateway
+  # =============================================
+  api-gateway:
+    build: ./api-gateway
+    container_name: personal-finance-gateway
+    ports:
+      - "8081:8081"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # Authentication Service
+  # =============================================
+  authentication-service:
+    build: ./authentication-service
+    container_name: personal-finance-auth-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      db:
+        condition: service_started
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/auth/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # User Finance Service
+  # =============================================
+  user-finance-service:
+    build: ./user-finance-service
+    container_name: personal-finance-finance-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      kafka:
+        condition: service_started
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+      - MINIO_URL=http://minio:9000
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # Goal Service
+  # =============================================
+  goal-service:
+    build: ./goal-service
+    container_name: personal-finance-goal-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      db:
+        condition: service_started
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================
+  # Insight Service
+  # =============================================
+  insight-service:
+    build: ./insight-service
+    container_name: personal-finance-insight-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      db:
+        condition: service_started
+      kafka:
+        condition: service_started
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    networks:
+      - personal-finance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # =============================================
   # MinIO - S3-Compatible Object Storage
   # =============================================
@@ -13,7 +211,6 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
-      MINIO_DEFAULT_BUCKETS: "receipts:public,goal-images:public,user-profiles:public,exports:private,backups:private"
     volumes:
       - minio_data:/minio_data
     command: minio server /minio_data --console-address ":9001"
@@ -74,7 +271,7 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: personal-finance-kafka-ui
     ports:
-      - "8000:8080"  # Port 8000 (available, not used by any service)
+      - "8000:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: personal-finance
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
@@ -125,7 +322,8 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_started
     networks:
       - personal-finance-network
     healthcheck:
@@ -181,6 +379,8 @@ services:
       retries: 3
 
 volumes:
+  db_data:
+    driver: local
   minio_data:
     driver: local
   prometheus_data:
