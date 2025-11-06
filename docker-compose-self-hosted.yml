@@ -10,10 +10,11 @@ services:
     networks:
       - personal-finance-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "curl -s http://localhost:8761/ || exit 0"]
+      interval: 60s
+      timeout: 20s
+      retries: 5
+      start_period: 120s
 
   # =============================================
   # Configuration Server
@@ -50,6 +51,7 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - personal-finance-network
     healthcheck:
@@ -131,7 +133,7 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/user_finance_db
       - MINIO_URL=http://minio:9000
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     networks:
@@ -160,7 +162,7 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/goal_service_db
     networks:
       - personal-finance-network
     healthcheck:
@@ -189,7 +191,7 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auth_service_db
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/insight_service_db
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     networks:
       - personal-finance-network

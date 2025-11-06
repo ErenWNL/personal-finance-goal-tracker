@@ -32,7 +32,7 @@ scrape_configs:
   - job_name: 'api-gateway'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['api-gateway:8081']
+      - targets: ['personal-finance-gateway:8081']
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -42,7 +42,7 @@ scrape_configs:
   - job_name: 'auth-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['auth-service:8082']
+      - targets: ['personal-finance-auth-service:8082']
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -52,7 +52,7 @@ scrape_configs:
   - job_name: 'finance-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['finance-service:8083']
+      - targets: ['personal-finance-finance-service:8083']
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -62,7 +62,7 @@ scrape_configs:
   - job_name: 'goal-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['goal-service:8084']
+      - targets: ['personal-finance-goal-service:8084']
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -72,7 +72,7 @@ scrape_configs:
   - job_name: 'insight-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['insight-service:8085']
+      - targets: ['personal-finance-insight-service:8085']
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -82,7 +82,7 @@ scrape_configs:
   - job_name: 'config-server'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['config-server:8888']
+      - targets: ['personal-finance-config-server:8888']
     scrape_interval: 15s
     scrape_timeout: 10s
 
@@ -92,7 +92,7 @@ scrape_configs:
   - job_name: 'eureka-server'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['eureka-server:8761']
+      - targets: ['personal-finance-eureka:8761']
     scrape_interval: 15s
     scrape_timeout: 10s
 
