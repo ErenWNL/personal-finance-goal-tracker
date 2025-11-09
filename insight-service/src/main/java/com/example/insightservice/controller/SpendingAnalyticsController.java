@@ -144,30 +144,83 @@ public class SpendingAnalyticsController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> createAnalytics(@RequestBody SpendingAnalytics analytics) {
-        SpendingAnalytics created = analyticsService.createOrUpdateAnalytics(analytics);
-        
         Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Analytics created successfully");
-        response.put("analytics", created);
-        
-        return ResponseEntity.ok(response);
+
+        try {
+            // Validate required fields
+            if (analytics.getUserId() == null) {
+                response.put("success", false);
+                response.put("message", "User ID is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (analytics.getCategoryId() == null) {
+                response.put("success", false);
+                response.put("message", "Category ID is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (analytics.getAnalysisPeriod() == null || analytics.getAnalysisPeriod().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Analysis Period is required (DAILY, WEEKLY, MONTHLY, YEARLY)");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (analytics.getAnalysisMonth() == null) {
+                response.put("success", false);
+                response.put("message", "Analysis Month is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (analytics.getTotalAmount() == null) {
+                response.put("success", false);
+                response.put("message", "Total Amount is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            SpendingAnalytics created = analyticsService.createOrUpdateAnalytics(analytics);
+
+            response.put("success", true);
+            response.put("message", "Analytics created successfully");
+            response.put("analytics", created);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error creating analytics: " + e.getMessage());
+            response.put("error", e.getClass().getSimpleName());
+            return ResponseEntity.status(500).body(response);
+        }
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateAnalytics(
             @PathVariable Long id,
             @RequestBody SpendingAnalytics analytics) {
-        
-        analytics.setId(id);
-        SpendingAnalytics updated = analyticsService.createOrUpdateAnalytics(analytics);
-        
+
         Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Analytics updated successfully");
-        response.put("analytics", updated);
-        
-        return ResponseEntity.ok(response);
+
+        try {
+            if (id == null || id <= 0) {
+                response.put("success", false);
+                response.put("message", "Invalid analytics ID");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            analytics.setId(id);
+            SpendingAnalytics updated = analyticsService.createOrUpdateAnalytics(analytics);
+
+            response.put("success", true);
+            response.put("message", "Analytics updated successfully");
+            response.put("analytics", updated);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error updating analytics: " + e.getMessage());
+            response.put("error", e.getClass().getSimpleName());
+            return ResponseEntity.status(500).body(response);
+        }
     }
 
     @DeleteMapping("/{id}")

@@ -138,11 +138,44 @@ const EmptyDescription = styled(Text)`
   margin-bottom: ${props => props.theme.spacing[6]};
 `;
 
+const TabsContainer = styled(motion.div)`
+  display: flex;
+  gap: ${props => props.theme.spacing[2]};
+  margin-bottom: ${props => props.theme.spacing[6]};
+  flex-wrap: wrap;
+`;
+
+const Tab = styled.button`
+  padding: ${props => props.theme.spacing[3]} ${props => props.theme.spacing[4]};
+  border: 2px solid ${props => props.isActive ? props.theme.colors.primary[500] : props.theme.colors.gray[300]};
+  background: ${props => props.isActive ? props.theme.colors.primary[50] : props.theme.colors.white};
+  color: ${props => props.isActive ? props.theme.colors.primary[600] : props.theme.colors.gray[700]};
+  border-radius: ${props => props.theme.borderRadius.md};
+  font-weight: ${props => props.isActive ? props.theme.fontWeights.bold : props.theme.fontWeights.medium};
+  cursor: pointer;
+  transition: all ${props => props.theme.transitions.fast};
+  font-size: ${props => props.theme.fontSizes.sm};
+
+  &:hover {
+    border-color: ${props => props.theme.colors.primary[500]};
+    background: ${props => props.isActive ? props.theme.colors.primary[50] : props.theme.colors.gray[50]};
+  }
+`;
+
+const TabBadge = styled.span`
+  margin-left: ${props => props.theme.spacing[2]};
+  background: ${props => props.theme.colors.gray[200]};
+  padding: 2px 8px;
+  border-radius: ${props => props.theme.borderRadius.full};
+  font-size: ${props => props.theme.fontSizes.xs};
+  font-weight: ${props => props.theme.fontWeights.bold};
+`;
+
 const Goals = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { goals, isLoading, totalGoals, completedGoals } = useSelector((state) => state.goals);
-  
+  const { goals, isLoading, totalGoals } = useSelector((state) => state.goals);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [filters, setFilters] = useState({
@@ -150,6 +183,9 @@ const Goals = () => {
     category: 'all',
     priority: 'all',
   });
+
+  // Calculate completed goals directly from goals array for reliability
+  const completedGoals = goals.filter(goal => goal.status === 'COMPLETED').length;
 
   useEffect(() => {
     if (user?.id) {
@@ -187,6 +223,7 @@ const Goals = () => {
         const goalData = {
           ...goal,
           status: 'COMPLETED',
+          currentAmount: goal.targetAmount, // Update current amount to match target
           completedAt: new Date().toISOString(),
           completionPercentage: 100,
         };
@@ -246,9 +283,19 @@ const Goals = () => {
   });
 
   const activeGoals = goals.filter(goal => goal.status === 'ACTIVE').length;
+  const pausedGoals = goals.filter(goal => goal.status === 'PAUSED').length;
   const totalTargetAmount = goals.reduce((sum, goal) => sum + (goal.targetAmount || 0), 0);
   const totalCurrentAmount = goals.reduce((sum, goal) => sum + (goal.currentAmount || 0), 0);
   const overallProgress = totalTargetAmount > 0 ? (totalCurrentAmount / totalTargetAmount) * 100 : 0;
+
+  // Tab filtering
+  const getGoalsByTab = (tab) => {
+    if (tab === 'all') return goals;
+    if (tab === 'active') return goals.filter(goal => goal.status === 'ACTIVE');
+    if (tab === 'completed') return goals.filter(goal => goal.status === 'COMPLETED');
+    if (tab === 'paused') return goals.filter(goal => goal.status === 'PAUSED');
+    return goals;
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -302,24 +349,49 @@ const Goals = () => {
         </StatCard>
       </StatsOverview>
 
+      <TabsContainer
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+      >
+        <Tab
+          isActive={filters.status === 'all'}
+          onClick={() => handleFilterChange('status', 'all')}
+        >
+          All Goals
+          <TabBadge>{goals.length}</TabBadge>
+        </Tab>
+        <Tab
+          isActive={filters.status === 'active'}
+          onClick={() => handleFilterChange('status', 'active')}
+        >
+          Active
+          <TabBadge>{activeGoals}</TabBadge>
+        </Tab>
+        <Tab
+          isActive={filters.status === 'completed'}
+          onClick={() => handleFilterChange('status', 'completed')}
+        >
+          Completed
+          <TabBadge>{completedGoals}</TabBadge>
+        </Tab>
+        {pausedGoals > 0 && (
+          <Tab
+            isActive={filters.status === 'paused'}
+            onClick={() => handleFilterChange('status', 'paused')}
+          >
+            Paused
+            <TabBadge>{pausedGoals}</TabBadge>
+          </Tab>
+        )}
+      </TabsContainer>
+
       <FiltersSection
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <FilterGrid>
-          <FilterGroup>
-            <Label>Status</Label>
-            <Select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="paused">Paused</option>
-            </Select>
-          </FilterGroup>
           <FilterGroup>
             <Label>Category</Label>
             <Select
@@ -350,7 +422,9 @@ const Goals = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setFilters({ status: 'all', category: 'all', priority: 'all' })}
+              onClick={() => {
+                setFilters({ status: 'all', category: 'all', priority: 'all' });
+              }}
             >
               Clear Filters
             </Button>

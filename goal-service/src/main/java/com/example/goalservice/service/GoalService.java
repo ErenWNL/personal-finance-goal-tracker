@@ -181,6 +181,12 @@ public class GoalService {
         if (request.getTargetDate() != null) {
             goal.setTargetDate(request.getTargetDate());
         }
+        if (request.getStatus() != null) {
+            goal.setStatus(request.getStatus());
+        }
+        if (request.getCompletedAt() != null) {
+            goal.setCompletedAt(request.getCompletedAt());
+        }
 
         Goal updatedGoal = goalRepository.save(goal);
 

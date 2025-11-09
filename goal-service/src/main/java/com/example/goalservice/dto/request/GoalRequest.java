@@ -3,6 +3,7 @@ package com.example.goalservice.dto.request;
 import com.example.goalservice.entity.Goal;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class GoalRequest {
     private Long userId;
@@ -14,6 +15,8 @@ public class GoalRequest {
     private Goal.PriorityLevel priorityLevel;
     private LocalDate targetDate;
     private LocalDate startDate;
+    private Goal.Status status;
+    private LocalDateTime completedAt;
     private String motivationNote;
     private String rewardDescription;
     private String imageUrl;
@@ -116,5 +119,21 @@ public class GoalRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Goal.Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Goal.Status status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 }

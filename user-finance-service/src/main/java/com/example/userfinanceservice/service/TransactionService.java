@@ -95,32 +95,13 @@ public class TransactionService {
             metrics.recordTransactionAmount(savedTransaction.getAmount().doubleValue());
         }
 
-        // Publish Kafka event
+        // Async: Publish Kafka event (non-blocking)
         if (eventProducer != null) {
-            try {
-                TransactionEvent event = new TransactionEvent(
-                    savedTransaction.getId(),
-                    savedTransaction.getUserId(),
-                    savedTransaction.getType().toString(),
-                    savedTransaction.getCategory().getName(),
-                    savedTransaction.getDescription(),
-                    savedTransaction.getAmount(),
-                    savedTransaction.getTransactionDate().atStartOfDay(),
-                    LocalDateTime.now(),
-                    "CREATED"
-                );
-                eventProducer.publishTransactionCreated(event);
-            } catch (Exception e) {
-                System.err.println("Failed to publish Kafka event: " + e.getMessage());
-            }
+            publishTransactionEventAsync(savedTransaction);
         }
 
-        // Notify Insight Service about new transaction
-        try {
-            insightServiceClient.notifyTransactionCreated(savedTransaction);
-        } catch (Exception e) {
-            System.err.println("Failed to notify Insight Service: " + e.getMessage());
-        }
+        // Async: Notify Insight Service about new transaction (non-blocking)
+        notifyInsightServiceAsync(savedTransaction);
 
         TransactionResponse transactionResponse = convertToTransactionResponse(savedTransaction);
 
@@ -129,6 +110,37 @@ public class TransactionService {
         response.put("transaction", transactionResponse);
 
         return response;
+    }
+
+    /**
+     * Asynchronously publishes transaction event to Kafka
+     * Does not block the main request thread
+     */
+    private void publishTransactionEventAsync(Transaction savedTransaction) {
+        try {
+            TransactionEvent event = new TransactionEvent(
+                savedTransaction.getId(),
+                savedTransaction.getUserId(),
+                savedTransaction.getType().toString(),
+                savedTransaction.getCategory().getName(),
+                savedTransaction.getDescription(),
+                savedTransaction.getAmount(),
+                savedTransaction.getTransactionDate().atStartOfDay(),
+                LocalDateTime.now(),
+                "CREATED"
+            );
+            eventProducer.publishTransactionCreatedAsync(event);
+        } catch (Exception e) {
+            System.err.println("Failed to queue Kafka event for publishing: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Asynchronously notifies Insight Service about new transaction
+     * Does not block the main request thread
+     */
+    private void notifyInsightServiceAsync(Transaction savedTransaction) {
+        insightServiceClient.notifyTransactionCreatedAsync(savedTransaction);
     }
 
     public Map<String, Object> getAllTransactions() {
@@ -210,12 +222,8 @@ public class TransactionService {
 
         Transaction updatedTransaction = transactionRepository.save(transaction);
 
-        // Notify Insight Service about updated transaction
-        try {
-            insightServiceClient.notifyTransactionUpdated(updatedTransaction);
-        } catch (Exception e) {
-            System.err.println("Failed to notify Insight Service about update: " + e.getMessage());
-        }
+        // Async: Notify Insight Service about updated transaction (non-blocking)
+        notifyInsightServiceAsync(updatedTransaction);
 
         TransactionResponse transactionResponse = convertToTransactionResponse(updatedTransaction);
 
@@ -241,12 +249,8 @@ public class TransactionService {
 
         transactionRepository.deleteById(id);
 
-        // Notify Insight Service about deleted transaction
-        try {
-            insightServiceClient.notifyTransactionDeleted(id, userId);
-        } catch (Exception e) {
-            System.err.println("Failed to notify Insight Service about deletion: " + e.getMessage());
-        }
+        // Async: Notify Insight Service about deleted transaction (non-blocking)
+        insightServiceClient.notifyTransactionDeletedAsync(id, userId);
 
         response.put("success", true);
         response.put("message", "Transaction deleted successfully");
