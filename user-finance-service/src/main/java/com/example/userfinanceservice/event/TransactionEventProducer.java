@@ -9,6 +9,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,10 +29,28 @@ public class TransactionEventProducer {
     private KafkaTemplate<String, String> kafkaTemplate;
 
     /**
-     * Publish transaction created event
+     * Asynchronously publish transaction created event
+     * Executes in background thread pool, does not block caller
+     */
+    @Async("transactionAsyncExecutor")
+    public void publishTransactionCreatedAsync(TransactionEvent event) {
+        publishEventAsync("transactions.created", event, "CREATED");
+    }
+
+    /**
+     * Synchronously publish transaction created event
+     * For backward compatibility
      */
     public void publishTransactionCreated(TransactionEvent event) {
         publishEvent("transactions.created", event, "CREATED");
+    }
+
+    /**
+     * Asynchronously publish transaction updated event
+     */
+    @Async("transactionAsyncExecutor")
+    public void publishTransactionUpdatedAsync(TransactionEvent event) {
+        publishEventAsync("transactions.updated", event, "UPDATED");
     }
 
     /**
@@ -42,6 +61,14 @@ public class TransactionEventProducer {
     }
 
     /**
+     * Asynchronously publish transaction deleted event
+     */
+    @Async("transactionAsyncExecutor")
+    public void publishTransactionDeletedAsync(TransactionEvent event) {
+        publishEventAsync("transactions.deleted", event, "DELETED");
+    }
+
+    /**
      * Publish transaction deleted event
      */
     public void publishTransactionDeleted(TransactionEvent event) {
@@ -49,7 +76,30 @@ public class TransactionEventProducer {
     }
 
     /**
-     * Generic event publisher
+     * Generic async event publisher
+     */
+    private void publishEventAsync(String topic, TransactionEvent event, String eventType) {
+        try {
+            event.setEventType(eventType);
+            String payload = objectMapper.writeValueAsString(event);
+
+            Message<String> message = MessageBuilder
+                    .withPayload(payload)
+                    .setHeader(KafkaHeaders.TOPIC, topic)
+                    .setHeader("kafka_messageKey", event.getUserId().toString())
+                    .setHeader("eventType", eventType)
+                    .setHeader("customTimestamp", System.currentTimeMillis())
+                    .build();
+
+            kafkaTemplate.send(message);
+            logger.info("Published async event to {}: {}", topic, event.getTransactionId());
+        } catch (Exception e) {
+            logger.warn("Error publishing transaction event (async): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Generic synchronous event publisher
      */
     private void publishEvent(String topic, TransactionEvent event, String eventType) {
         try {

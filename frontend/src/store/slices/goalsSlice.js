@@ -100,6 +100,7 @@ const goalsSlice = createSlice({
         if (action.payload.success && action.payload.goal) {
           state.goals.push(action.payload.goal);
           state.totalGoals += 1;
+          state.completedGoals = state.goals.filter(goal => goal.status === 'COMPLETED').length;
         }
       })
       .addCase(createGoal.rejected, (state, action) => {

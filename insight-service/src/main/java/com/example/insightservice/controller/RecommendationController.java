@@ -45,12 +45,14 @@ public class RecommendationController {
     }
 
     @GetMapping("/user/{userId}/type/{type}")
+    @Operation(summary = "Get recommendations by type",
+               description = "Get recommendations filtered by type. Valid types: BUDGET_OPTIMIZATION, GOAL_ADJUSTMENT, SPENDING_ALERT, SAVING_OPPORTUNITY, CATEGORY_REBALANCE, INVESTMENT_SUGGESTION")
     public ResponseEntity<Map<String, Object>> getRecommendationsByType(
             @PathVariable Long userId,
             @PathVariable String type) {
-        
+
         try {
-            UserRecommendation.RecommendationType recommendationType = 
+            UserRecommendation.RecommendationType recommendationType =
                 UserRecommendation.RecommendationType.valueOf(type.toUpperCase());
             
             List<UserRecommendation> recommendations = 
